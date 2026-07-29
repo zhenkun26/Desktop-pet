@@ -1,0 +1,212 @@
+/* ===== 全局重置 ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* ===== 宠物舞台 ===== */
+.pet-stage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+}
+
+.pet-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: auto;
+  -webkit-user-drag: none;
+  transform-origin: bottom center;
+  will-change: transform;
+}
+
+/* ===== 4 态动画 ===== */
+
+/* idle: 呼吸 + 轻微摇摆（2.8s loop） */
+@keyframes idle-breathe {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1deg) scale(1.02, 0.98);
+  }
+}
+
+.pet-image.state-idle {
+  animation: idle-breathe 2.8s ease-in-out infinite;
+}
+
+/* drag: 倾斜跟随 */
+.pet-image.state-drag {
+  animation: none;
+  transform: rotate(-12deg) scale(1.01, 0.99);
+  transition: transform 0.12s ease-out;
+  cursor: grabbing;
+}
+
+/* click: 挤压弹跳 0.45s */
+@keyframes click-bounce {
+  0% {
+    transform: scale(1, 1);
+  }
+  30% {
+    transform: scale(1.18, 0.82);
+  }
+  60% {
+    transform: scale(0.9, 1.1);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+.pet-image.state-click {
+  animation: click-bounce 0.45s ease-out;
+}
+
+/* busy: 思考抖动 0.7s loop */
+@keyframes busy-shake {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateX(-3px) rotate(-2deg);
+  }
+  75% {
+    transform: translateX(3px) rotate(2deg);
+  }
+}
+
+.pet-image.state-busy {
+  animation: busy-shake 0.7s ease-in-out infinite;
+}
+
+/* ===== 气泡 ===== */
+.bubble {
+  position: absolute;
+  bottom: 75%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #333;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+  max-width: 180px;
+  text-align: center;
+  z-index: 100;
+  animation: bubble-in 0.2s ease-out;
+}
+
+.bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: #fff;
+  border-bottom: 0;
+}
+
+.bubble.hidden {
+  display: none;
+}
+
+.bubble.busy {
+  color: #888;
+  font-style: italic;
+}
+
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ===== 气泡菜单 ===== */
+.bubble.menu {
+  padding: 6px;
+  white-space: normal;
+  min-width: 120px;
+}
+
+.bubble-close {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.bubble-close:hover {
+  color: #333;
+}
+
+.bubble-title {
+  font-size: 12px;
+  color: #888;
+  padding: 2px 8px 6px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 4px;
+}
+
+.bubble-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bubble-action {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 6px 12px;
+  font-size: 13px;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #333;
+}
+
+.bubble-action:hover,
+.bubble-action:focus {
+  background: #f0f0f0;
+}

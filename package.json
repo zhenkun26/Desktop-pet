@@ -1,0 +1,23 @@
+{
+  "name": "hutao-desktop-pet",
+  "version": "1.0.0",
+  "description": "胡桃桌宠 - Tauri v2 + Rust + AI 角色对话",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.1.0",
+    "@tauri-apps/plugin-shell": "^2.0.0",
+    "dompurify": "^3.4.12",
+    "marked": "^18.0.6"
+  }
+}
