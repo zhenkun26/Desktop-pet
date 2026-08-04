@@ -1,0 +1,17 @@
+appId: com.hutao-desktop-pet
+productName: 胡桃桌宠
+directories:
+  output: release
+files:
+  - out/**
+  - resources/**
+mac:
+  category: public.app-category.lifestyle
+  icon: resources/icon.png
+  target:
+    - dmg
+dmg:
+  title: 胡桃桌宠
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

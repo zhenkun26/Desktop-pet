@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <title>胡桃桌宠</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <button id="bubble" class="bubble hidden" type="button"></button>
+      <div id="pet-stage" class="pet-stage">
+        <img
+          id="pet-image"
+          class="pet-image state-idle"
+          src="./assets/hutao.png"
+          alt="胡桃"
+          draggable="false"
+        />
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

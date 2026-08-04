@@ -1,0 +1,12 @@
+node_modules
+out
+dist
+release
+.git
+.gitignore
+.DS_Store
+openspec
+pets-picture
+src-tauri
+*.dmg
+*.blockmap

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <title>胡桃桌宠 - 聊天</title>
+    <link rel="stylesheet" href="./chat.css" />
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <!-- 顶栏 -->
+      <header class="chat-header">
+        <button class="icon-btn" id="drawer-toggle" title="会话列表">☰</button>
+        <img
+          class="header-avatar"
+          id="header-avatar"
+          src="./assets/hutao.png"
+          alt="胡桃"
+        />
+        <div class="header-info">
+          <div class="header-name" id="header-name">胡桃</div>
+          <div class="header-status" id="header-status">在线</div>
+        </div>
+      </header>
+
+      <!-- 会话抽屉 -->
+      <div class="drawer-mask" id="drawer-mask"></div>
+      <aside class="drawer" id="drawer">
+        <div class="drawer-header">
+          <div class="drawer-title">— 陪 伴 记 录 —</div>
+          <button class="new-chat-btn" id="new-chat-btn">✦ 新的话题</button>
+        </div>
+        <div class="conv-list" id="conv-list"></div>
+      </aside>
+
+      <!-- 视图区域 -->
+      <main class="view-area">
+        <!-- 对话视图 -->
+        <section class="view active" id="view-chat">
+          <div class="message-area" id="message-area">
+            <div id="message-list"></div>
+            <div id="stream-container"></div>
+          </div>
+          <div class="input-bar">
+            <div class="input-hint">Enter 发送 · Shift+Enter 换行</div>
+            <div class="input-row">
+              <textarea
+                id="message-input"
+                rows="1"
+                placeholder="和胡桃说点什么吧…"
+              ></textarea>
+              <button class="send-btn" id="send-btn" disabled title="发送">➤</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 角色设定视图 -->
+        <section class="view" id="view-persona">
+          <div class="panel-scroll">
+            <div class="panel-card">
+              <h2>角色设定</h2>
+              <div class="subtitle">自定义胡桃对你的称呼和互动方式</div>
+            </div>
+            <div class="panel-card">
+              <h3>核心身份（只读）</h3>
+              <div class="readonly-box" id="core-identity"></div>
+            </div>
+            <div class="panel-card">
+              <h3>说话风格（只读）</h3>
+              <div class="readonly-box" id="speech-style"></div>
+            </div>
+            <div class="panel-card">
+              <h3>个性化设置</h3>
+              <div class="form-group">
+                <label>称呼你为</label>
+                <input type="text" id="f-userCallName" maxlength="32" placeholder="旅行者" />
+              </div>
+              <div class="form-group">
+                <label>你们的关系</label>
+                <input type="text" id="f-relationship" maxlength="64" placeholder="老朋友" />
+              </div>
+              <div class="form-group">
+                <label>性格偏向</label>
+                <select id="f-personalityBias">
+                  <option value="caring">体贴温柔</option>
+                  <option value="mischievous">古灵精怪</option>
+                  <option value="shy">害羞内敛</option>
+                  <option value="confident">自信开朗</option>
+                  <option value="sleepy">软软困困</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>语气偏好</label>
+                <select id="f-tonePreference">
+                  <option value="gentle">温柔</option>
+                  <option value="energetic">元气</option>
+                  <option value="tsundere">傲娇</option>
+                  <option value="soft">软糯</option>
+                  <option value="playful">俏皮</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>额外备注</label>
+                <textarea id="f-extraNotes" maxlength="500" placeholder="其他你想让胡桃知道的事…"></textarea>
+              </div>
+              <button class="save-btn" id="save-persona-btn">保存设置</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 番茄钟视图 -->
+        <section class="view" id="view-timer">
+          <div class="panel-scroll">
+            <div class="panel-card">
+              <h2>休息提醒</h2>
+              <div class="subtitle">持续使用电脑太久，胡桃会提醒你起来活动</div>
+              <div class="timer-display">
+                <div class="timer-ring">
+                  <svg class="timer-svg" viewBox="0 0 120 120">
+                    <circle class="timer-ring-bg" cx="60" cy="60" r="54" />
+                    <circle
+                      class="timer-ring-fg rest"
+                      id="rest-ring"
+                      cx="60"
+                      cy="60"
+                      r="54"
+                    />
+                  </svg>
+                  <div class="timer-ring-text" id="rest-ring-text">0:00</div>
+                </div>
+                <div class="timer-label" id="rest-label">本次已陪伴 0 分钟</div>
+              </div>
+              <div class="timer-config-row">
+                <label>每隔多少分钟提醒一次</label>
+                <input type="number" id="rest-interval-input" min="10" max="120" step="5" />
+              </div>
+              <div class="timer-actions">
+                <button class="btn-primary" id="apply-rest-btn">应用</button>
+                <button class="btn-danger" id="reset-rest-btn">重新计时</button>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <h2>番茄钟</h2>
+              <div class="subtitle">专注工作一段时间，然后好好休息</div>
+              <div class="timer-display">
+                <div class="timer-ring">
+                  <svg class="timer-svg" viewBox="0 0 120 120">
+                    <circle class="timer-ring-bg" cx="60" cy="60" r="54" />
+                    <circle
+                      class="timer-ring-fg work"
+                      id="pomodoro-ring"
+                      cx="60"
+                      cy="60"
+                      r="54"
+                    />
+                  </svg>
+                  <div class="timer-ring-text" id="pomodoro-ring-text">--:--</div>
+                </div>
+                <div class="timer-label" id="pomodoro-label">未开始</div>
+              </div>
+              <div class="timer-config-row">
+                <label>专注时长（分钟）</label>
+                <input type="number" id="work-mins-input" min="5" max="90" step="5" />
+              </div>
+              <div class="timer-config-row">
+                <label>休息时长（分钟）</label>
+                <input type="number" id="break-mins-input" min="3" max="30" step="1" />
+              </div>
+              <div class="timer-actions">
+                <button class="btn-primary" id="start-pomodoro-btn">开始专注</button>
+                <button class="btn-danger" id="stop-pomodoro-btn">停止</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- API 设置视图 -->
+        <section class="view" id="view-settings">
+          <div class="panel-scroll">
+            <div class="panel-card">
+              <h2>API 设置</h2>
+              <div class="subtitle">配置 DeepSeek API Key（经系统安全加密后存储在本地）</div>
+              <div class="status-box">
+                <span class="status-label">当前状态：</span>
+                <span class="status-value" id="api-status">加载中…</span>
+              </div>
+              <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="api-key-input" placeholder="sk-…" />
+              </div>
+              <div class="api-actions">
+                <button class="btn-primary" id="save-key-btn">保存</button>
+                <button class="btn-secondary" id="test-key-btn">测试连接</button>
+                <button class="btn-danger" id="delete-key-btn">删除</button>
+              </div>
+              <div id="test-result" class="test-result"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- 底部 Tab -->
+      <nav class="bottom-tabs">
+        <button class="tab active" data-view="chat">
+          <span class="tab-icon">💬</span>对话
+        </button>
+        <button class="tab" data-view="persona">
+          <img class="tab-icon tab-avatar" src="./assets/hutao.png" alt="" />角色
+        </button>
+        <button class="tab" data-view="timer">
+          <span class="tab-icon">⏰</span>时钟
+        </button>
+        <button class="tab" data-view="settings">
+          <span class="tab-icon">🌸</span>API
+        </button>
+      </nav>
+    </div>
+    <script type="module" src="./chat.ts"></script>
+  </body>
+</html>

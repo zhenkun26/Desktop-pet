@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hutao-pet-api
+  namespace: hutao-pet
+  annotations:
+    # 按你的 Ingress Controller 调整（nginx / traefik / alb 等）
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "<YOUR_CLUSTER_ISSUER>"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "<YOUR_DOMAIN>"
+      secretName: "<YOUR_TLS_SECRET>"
+  rules:
+    - host: "<YOUR_DOMAIN>"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hutao-pet-api
+                port:
+                  name: http

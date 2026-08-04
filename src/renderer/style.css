@@ -1,0 +1,199 @@
+/* 胡桃桌宠 · 桌宠窗口（200x300 透明无边框）
+ * 布局参照 kirineko/desktop-pet：#app 为 flex 列、justify-end，
+ * 气泡是文档流元素（非绝对定位），立绘仅 128x128 —— 从根本上避免气泡被裁切。
+ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 8px;
+}
+
+/* —— 气泡（文档流，位于立绘上方） —— */
+
+.bubble {
+  position: relative;
+  flex: 0 0 auto;
+  max-width: 168px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 251, 245, 0.96);
+  box-shadow: 0 4px 14px rgba(120, 60, 40, 0.22);
+  color: #5a3a2e;
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  pointer-events: none; /* 默认穿透，菜单模式恢复可点 */
+  cursor: default;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: 3px 3px 6px rgba(120, 60, 40, 0.08);
+}
+
+.bubble.hidden {
+  opacity: 0;
+  transform: translateY(4px);
+  visibility: hidden;
+}
+
+.bubble.clickable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.bubble .bubble-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.bubble .bubble-action {
+  flex: 1;
+  padding: 4px 0;
+  border: none;
+  border-radius: 8px;
+  background: #ffe3d3;
+  color: #8a4b2f;
+  font-size: 11px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.bubble .bubble-action:hover {
+  background: #ffd3bd;
+}
+
+/* —— 立绘舞台 —— */
+
+.pet-stage {
+  flex: 0 0 auto;
+  width: 128px;
+  height: 128px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  cursor: grab;
+  -webkit-app-region: no-drag;
+}
+
+.pet-stage:active {
+  cursor: grabbing;
+}
+
+.pet-image {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(60, 30, 20, 0.28));
+}
+
+/* 待机：呼吸浮动 */
+.pet-image.state-idle {
+  animation: idle-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes idle-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* 拖拽：轻微倾斜 */
+.pet-image.state-drag {
+  animation: drag-tilt 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes drag-tilt {
+  from {
+    transform: rotate(-5deg) scale(1.03);
+  }
+  to {
+    transform: rotate(5deg) scale(1.03);
+  }
+}
+
+/* 点击：弹跳 */
+.pet-image.state-click {
+  animation: click-bounce 0.45s ease;
+}
+
+@keyframes click-bounce {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.88) translateY(4px);
+  }
+  70% {
+    transform: scale(1.08) translateY(-8px);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 思考中：快速摇晃 */
+.pet-image.state-busy {
+  animation: busy-shake 0.7s ease-in-out infinite;
+}
+
+@keyframes busy-shake {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateX(-3px) rotate(-2deg);
+  }
+  75% {
+    transform: translateX(3px) rotate(2deg);
+  }
+}
