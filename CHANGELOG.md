@@ -10,6 +10,8 @@
 
 <!-- 下次发版前在此段落累积未发布的变更。发版时将本段落内容剪切到新版本号段落下，并清空本段落。 -->
 
+## [2.0.2] - 2026-08-04
+
 ### Fixed
 
 - **DeepSeek 请求无限挂起**：流式对话增加 60s 空闲超时、API Key 测试增加 15s 超时，新增 `timeout` 错误码；杜绝外部服务悬挂导致 UI 卡死
@@ -411,7 +413,8 @@
 
 <!-- 链接定义区（Keep a Changelog 推荐） -->
 
-[Unreleased]: https://github.com/zhenkun26/DeskPet/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/zhenkun26/DeskPet/compare/v2.0.2...HEAD
+[2.0.2]: https://github.com/zhenkun26/DeskPet/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/zhenkun26/DeskPet/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/zhenkun26/DeskPet/compare/v1.7.0...v2.0.0
 [1.7.0]: https://github.com/zhenkun26/DeskPet/compare/v1.6.2...v1.7.0
