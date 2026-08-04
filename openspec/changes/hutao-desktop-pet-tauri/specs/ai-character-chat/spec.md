@@ -70,24 +70,24 @@
 
 ### Requirement: API Key 加密存储
 
-系统 SHALL 使用 macOS Keychain（通过 `keyring` crate）存储 DeepSeek API Key，禁止明文落盘。系统 MUST 支持设置、修改、删除、查询 API Key 状态（是否已配置 + 脱敏显示如 `sk-***...***abcd`）。系统 MUST 支持在线测试 API Key 有效性（发起一次最小请求）。
+系统 SHALL 以非明文形式存储 DeepSeek API Key：使用 AES-256-GCM 加密后写入应用数据目录（加密密钥由本机硬件 UUID + 应用盐经 SHA-256 派生，文件权限 0600），禁止明文落盘。（注：v1.0 曾用 macOS Keychain，因 ad-hoc 签名重建后条目不可见而于 v1.1.1 改为加密文件方案。）系统 MUST 支持设置、修改、删除、查询 API Key 状态（是否已配置 + 脱敏显示如 `sk-***...***abcd`）。系统 MUST 支持在线测试 API Key 有效性（发起一次最小请求）。
 
 #### Scenario: 首次设置 API Key
 
 - **WHEN** 用户在 API 设置视图输入 API Key 并保存
-- **THEN** 系统将 Key 写入 macOS Keychain
+- **THEN** 系统将 Key 加密后写入应用数据目录，并立即回读校验
 - **AND** 返回脱敏状态（configured=true、masked="sk-***...***abcd"）
 
 #### Scenario: 修改 API Key
 
 - **WHEN** 用户在已配置状态下输入新 Key 并保存
-- **THEN** 系统覆盖 Keychain 中的旧 Key
+- **THEN** 系统覆盖已加密的旧 Key
 - **AND** 后续对话使用新 Key
 
 #### Scenario: 删除 API Key
 
 - **WHEN** 用户点击"删除 API Key"
-- **THEN** 系统从 Keychain 删除 Key
+- **THEN** 系统删除加密的 Key 文件
 - **AND** 返回 configured=false
 
 #### Scenario: 在线测试 API Key

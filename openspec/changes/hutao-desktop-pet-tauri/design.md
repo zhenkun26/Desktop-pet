@@ -72,6 +72,8 @@
 
 ### 决策 4：API Key 用 keyring crate 存 macOS Keychain
 
+> **⚠ 已于 v1.1.1 推翻**：实测发现 macOS 数据保护钥匙串把条目访问权绑定到签名二进制的 cdhash，ad-hoc 签名的应用每次重新构建后旧 Key 不可见（"保存成功但读取不到"）。已改为 AES-256-GCM 加密文件（密钥由 kern.hostuuid + 应用盐派生，0600 权限），详见 `src-tauri/src/chat/secrets.rs` 头部注释。以下内容为历史决策存档。
+
 **选择**：`keyring` crate，service name = `com.hutao-desktop-pet.deepseek`，account = `default`。
 
 **理由**：
