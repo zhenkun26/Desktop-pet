@@ -16,13 +16,13 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^3.2.7",
     "electron": "^39.0.0",
     "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
-    "vitest": "^4.1.10"
+    "vitest": "^3.2.7"
   },
   "dependencies": {
     "dompurify": "^3.4.12",
