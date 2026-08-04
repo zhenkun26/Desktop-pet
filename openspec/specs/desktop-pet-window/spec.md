@@ -1,0 +1,16 @@
+# desktop-pet-window Specification
+
+## Purpose
+TBD - created by archiving change multi-character-framework. Update Purpose after archive.
+## Requirements
+### Requirement: 按角色渲染桌宠与聊天上下文
+桌宠窗口的立绘与时段问候、聊天窗口的角色上下文（头像、标题、人设表单、空状态文案）SHALL 依据当前 `petId` 渲染，角色数据来自 `pet-registry`，不得在渲染层硬编码具体角色。
+
+#### Scenario: 角色上下文生效
+- **WHEN** 桌宠或聊天窗口以 `petId='hutao'` 打开
+- **THEN** 显示胡桃的立绘、问候语与人设表单，角色相关文案与素材均来自注册表
+
+#### Scenario: 打开聊天指定角色
+- **WHEN** 通过打开参数携带 `petId` 打开聊天窗口
+- **THEN** 聊天窗口切换为该角色的会话列表、人设与空状态上下文
+

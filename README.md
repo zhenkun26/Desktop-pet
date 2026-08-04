@@ -143,3 +143,9 @@ DeskPet/
 ## License
 
 MIT（代码部分）。美术资源版权归 miHoYo 所有，详见上方 NOTICE。
+
+## 致谢
+
+特别感谢 [kirineko](https://github.com/kirineko/) 的开源项目
+[kirineko/desktop-pet](https://github.com/kirineko/desktop-pet)——本项目的窗口/拖拽/气泡交互、
+流式聊天事件模型与工程结构参考了它的架构与实现。

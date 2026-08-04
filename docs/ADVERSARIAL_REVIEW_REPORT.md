@@ -170,10 +170,12 @@ npm test                    # 76 个测试
 npm run test:coverage       # 核心服务范围行覆盖率 82.21%
 npm run build               # 产物在 out/
 
-# 2) 构建 CI 产物校验镜像(多阶段,runner < 100MB)
+# 2) 构建 CI 产物校验镜像(多阶段,默认 runner 23.3MB < 100MB)
 docker build --target runner -t hutao-pet-ci:latest .
-docker run --rm hutao-pet-ci:latest          # 执行 smoke.mjs 产物校验
+docker run --rm hutao-pet-ci:latest          # 执行 smoke.sh 产物校验
 docker image inspect hutao-pet-ci:latest     # 查看镜像体积
+# 可选:runner-node 变体(node --check 完整语法校验,约 201MB)
+docker build --target runner-node -t hutao-pet-ci-node:latest .
 
 # 3) 推送(占位,替换你的仓库地址)
 docker tag hutao-pet-ci:latest <YOUR_REGISTRY>/hutao-pet-ci:latest
@@ -287,4 +289,4 @@ kubectl -n hutao-pet scale deployment/hutao-pet-api --replicas=0
 
 1. 删除已无唯一价值的 `.claude/`、`.kimi-code/`、`.trae/` 工具目录(OpenSpec 工作流已由 `.codex/skills` 承载,无迁移遗漏);
 2. 三个 OpenSpec change(监听器可观测性、多角色框架、开源发布准备)的工件与实现同步完成,`openspec validate --all` 7/7 通过;
-3. 生产级 `Dockerfile` + `smoke.mjs` + `.dockerignore` 落地;`deploy/` 8 个 K8s 参考清单落地。
+3. 生产级 `Dockerfile`(默认 runner 23.3MB / `runner-node` 变体 201MB)+ `smoke.sh`/`smoke.mjs` + `.dockerignore` 落地并实机构建验证;`deploy/` 8 个 K8s 参考清单落地。

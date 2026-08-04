@@ -124,12 +124,15 @@ docker info             # 确认可用
 docker build --target runner -t hutao-pet-ci:latest .
 docker run --rm hutao-pet-ci:latest          # 预期输出 [smoke] 构建产物校验通过
 docker images hutao-pet-ci                    # 记录 SIZE
+# 可选:带 Node 运行时做完整语法校验(体积较大)
+docker build --target runner-node -t hutao-pet-ci-node:latest .
+docker run --rm hutao-pet-ci-node:latest
 ```
 
 ### 3.3 体积验收与瘦身预案
 
-- 目标:SIZE < 100MB(runner 层 = node:22-alpine + out/ + smoke.mjs);
-- 若超标:移除 `package.json` 拷贝、改用更小基础镜像或精简 runner,重新构建;
+- **实测结果**:默认 runner = alpine + `smoke.sh`,SIZE **23.3MB**(<100MB 达成);`runner-node` 变体(完整 `node --check` 语法校验)为 **201MB**——Node 二进制本身 120MB,带 Node 运行时无法 <100MB,属物理下限;
+- 默认 `docker build` 产出 slim runner;需要语法级校验时构建 `runner-node`;
 - 可选:推送 `docker push <YOUR_REGISTRY>/hutao-pet-ci:latest`。
 
 ## Phase 4 — 收尾

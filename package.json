@@ -1,7 +1,7 @@
 {
   "name": "hutao-desktop-pet",
-  "version": "2.0.1",
-  "description": "胡桃桌宠 v2.0.1 - Electron + AI 角色对话 + 休息提醒/番茄钟陪伴（架构参照 kirineko/desktop-pet）",
+  "version": "2.0.2",
+  "description": "胡桃桌宠 v2.0.2 - Electron + AI 角色对话 + 休息提醒/番茄钟陪伴（架构参照 kirineko/desktop-pet）",
   "main": "./out/main/index.js",
   "author": "yuzheng",
   "license": "MIT",

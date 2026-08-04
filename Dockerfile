@@ -1,17 +1,11 @@
-# syntax=docker/dockerfile:1.7
-#
-# 生产级多阶段构建镜像（CI 用途：类型检查 + 单元测试 + 构建产物校验）。
-# 重要说明：
-# - 本仓库交付物是 Electron 桌面应用，macOS .dmg 只能在 macOS runner 上打包
-#   （见 .github/workflows/release-mac.yml），本镜像不承载 GUI 运行时；
-# - 最终 runner 层仅包含 node 运行时与构建产物，目标体积 < 100MB。
+ARG NPM_REGISTRY=https://registry.npmjs.org/
 
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 # --ignore-scripts：测试/构建不需要下载 Electron 二进制，避免镜像膨胀
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --ignore-scripts
+    npm ci --ignore-scripts --registry=$NPM_REGISTRY
 
 FROM deps AS build
 WORKDIR /app
@@ -19,21 +13,35 @@ COPY tsconfig.json vitest.config.mts electron.vite.config.ts ./
 COPY src ./src
 COPY test ./test
 RUN --mount=type=cache,target=/root/.npm \
+    npm config set registry $NPM_REGISTRY && \
     npx tsc --noEmit && \
     npm test && \
     npm run build
 
-FROM node:22-alpine AS runner
+FROM alpine:3.20 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/out ./out
 COPY package.json ./
+COPY scripts/smoke.sh ./smoke.sh
+# 非 root 运行
+RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
+USER app
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD ["/bin/sh", "/app/smoke.sh"]
+
+ENTRYPOINT ["/bin/sh", "/app/smoke.sh"]
+
+# 可选变体：带 Node 运行时的完整语法校验（node --check），体积较大
+FROM runner AS runner-node
+COPY --from=node:22-alpine /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:22-alpine /usr/lib/libstdc++.so.6 /usr/lib/libstdc++.so.6
+COPY --from=node:22-alpine /usr/lib/libgcc_s.so.1 /usr/lib/libgcc_s.so.1
 COPY scripts/smoke.mjs ./smoke.mjs
-# 非 root 运行：nobody (uid/gid 65534)
-RUN chown -R 65534:65534 /app
 USER 65534:65534
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD ["node", "smoke.mjs"]
+  CMD ["node", "/app/smoke.mjs"]
 
-ENTRYPOINT ["node", "smoke.mjs"]
+ENTRYPOINT ["node", "/app/smoke.mjs"]
