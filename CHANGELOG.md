@@ -10,6 +10,19 @@
 
 <!-- 下次发版前在此段落累积未发布的变更。发版时将本段落内容剪切到新版本号段落下，并清空本段落。 -->
 
+## [2.0.3] - 2026-08-06
+
+### Added
+
+- **贡献者信息**：新增 `CONTRIBUTORS.md` 与 package.json `contributors`，登记主体实现者 Kimi K3、产品负责人 yuzheng 及参考项目 kirineko
+- **新增桌宠指南**：README 增加「新增桌宠（扩展角色）」章节，说明 `pet-registry` 的扩展接口与四步接入流程
+
+### Changed
+
+- **产品更名**：「胡桃桌宠」→「二次元桌宠」，GitHub 仓库 `DeskPet` → `Desktop-pet`；macOS 打包产物、托盘/窗口标题、README/文档文案同步
+- **用户数据迁移**：`productName` 变更使 macOS userData 目录由 `胡桃桌宠/` 变为 `二次元桌宠/`，新增首次启动一次性迁移（配置/聊天记录/API Key 自动复制，幂等标记，失败不阻塞启动）
+- **失效文案同步**：README 测试徽章 76→81、架构图 alt、目录树补齐（`CONTRIBUTORS.md`、`smoke.sh`、`ruleset-main.json`、`user-data-migration.ts` 等）；审查报告与推进方案的测试数/覆盖率同步为最新（13 文件 / 81 用例 / 语句与行覆盖率 86.27%）
+
 ## [2.0.2] - 2026-08-04
 
 ### Fixed
@@ -23,7 +36,6 @@
 
 ### Changed
 
-- **产品更名**：「胡桃桌宠」→「二次元桌宠」，GitHub 仓库 `DeskPet` → `Desktop-pet`；macOS 打包产物、托盘/窗口标题同步更新；旧 userData 目录（`胡桃桌宠/`）在首次启动时自动迁移到新目录（`二次元桌宠/`），配置、聊天记录与 API Key 不丢失
 - **多角色框架**：`petId` 全链路透传（渲染层 → preload → IPC → 服务），新增 `pet-registry` 角色注册表（展示名/人设/素材/问候语单一来源），渲染层角色上下文动态化；当前仅注册胡桃一个实例
 - **事件监听器异常可见性**：`safeEmit` 逐监听器隔离派发，异常记录事件通道/监听器名/错误详情；新增可选 `onListenerError` 订阅钩子
 - **流式性能**：数据库落库（120ms 合并）与 Markdown 渲染（requestAnimationFrame 合并）双端节流，长回复不再逐 token 全量写库/重解析
@@ -414,7 +426,8 @@
 
 <!-- 链接定义区（Keep a Changelog 推荐） -->
 
-[Unreleased]: https://github.com/zhenkun26/Desktop-pet/compare/v2.0.2...HEAD
+[Unreleased]: https://github.com/zhenkun26/Desktop-pet/compare/v2.0.3...HEAD
+[2.0.3]: https://github.com/zhenkun26/Desktop-pet/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/zhenkun26/Desktop-pet/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/zhenkun26/Desktop-pet/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/zhenkun26/Desktop-pet/compare/v1.7.0...v2.0.0

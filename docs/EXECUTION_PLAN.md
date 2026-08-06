@@ -7,7 +7,7 @@
 
 | 步骤 | 命令 | 通过标准 |
 |------|------|----------|
-| 0.1 | `npm test` + `npx tsc --noEmit` | 76/76 通过,0 错误 |
+| 0.1 | `npm test` + `npx tsc --noEmit` | 81/81 通过,0 错误 |
 | 0.2 | `npm run build` | 构建成功 |
 | 0.3 | `openspec validate --all` | 7/7 通过 |
 | 0.4 | 敏感信息扫描(rg 密钥/私钥模式) | 无真实密钥 |

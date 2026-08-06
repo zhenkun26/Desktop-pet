@@ -6,7 +6,7 @@
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Platform macOS](https://img.shields.io/badge/Platform-macOS-lightgrey?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![OpenSpec](https://img.shields.io/badge/OpenSpec-spec--driven-blueviolet)](openspec/)
-[![Tests](https://img.shields.io/badge/tests-76%20passed-brightgreen)](docs/ADVERSARIAL_REVIEW_REPORT.md)
+[![Tests](https://img.shields.io/badge/tests-81%20passed-brightgreen)](docs/ADVERSARIAL_REVIEW_REPORT.md)
 
 一个 Electron 二次元桌宠陪伴应用：以角色形象呈现的透明置顶桌宠，支持拖拽互动、AI 角色扮演对话、休息提醒与番茄钟；当前内置角色为胡桃，并预留多角色扩展框架（见「新增桌宠」）。
 
@@ -28,7 +28,7 @@
 
 ## 架构总览
 
-![DeskPet 架构总览](docs/assets/architecture.png)
+![二次元桌宠架构总览](docs/assets/architecture.png)
 
 Electron 三进程结构：renderer（桌宠窗口 + 聊天窗口）经 preload 的 contextBridge 与 main 主进程通信；主进程承载 ChatService（SSE 流式对话）、TimerService（休息提醒 + 番茄钟）与 PetRegistry（多角色框架），本地持久化使用 node:sqlite 与 safeStorage 钥匙串级加密。
 
@@ -64,6 +64,7 @@ Desktop-pet/
 │   │   └── release-mac.yml           # 手动触发的 macOS dmg 发版工作流
 │   ├── CODEOWNERS                    # 代码审查负责人(当前 @yuzheng)
 │   ├── PULL_REQUEST_TEMPLATE.md      # PR 模板:关联 OpenSpec change + 自检清单
+│   ├── ruleset-main.json             # main 分支保护 Ruleset 规则(可复现)
 │   └── ISSUE_TEMPLATE/
 │       ├── bug_report.md             # Bug 报告模板
 │       └── feature_request.md        # 功能建议模板(引导先开 OpenSpec change)
@@ -72,6 +73,7 @@ Desktop-pet/
 ├── .gitignore                        # git 忽略规则(依赖/构建产物/覆盖率)
 ├── AGENTS.md                         # 代理(AI/协作者)代码规范,公共约束
 ├── CHANGELOG.md                      # 版本变更历史(Keep a Changelog)
+├── CONTRIBUTORS.md                   # 贡献者列表(Kimi K3 主体实现等)
 ├── Dockerfile                        # 生产级多阶段 CI 镜像(非 root,目标 <100MB)
 ├── LICENSE                           # MIT 开源许可
 ├── README.md                         # 项目说明(本文件)
@@ -89,7 +91,8 @@ Desktop-pet/
 │   ├── ADVERSARIAL_REVIEW_REPORT.md  # 对抗性生产级审查与验收报告
 │   ├── EXECUTION_PLAN.md             # 剩余待办推进方案(冒烟/GitHub/Docker)
 │   ├── CONTRIBUTING.md               # 贡献指南(OpenSpec 优先)
-│   └── SECURITY.md                   # 安全报告渠道与约定
+│   ├── SECURITY.md                   # 安全报告渠道与约定
+│   └── assets/architecture.png       # README 架构总览图
 ├── electron-builder.yml              # macOS 打包配置(dmg)
 ├── electron.vite.config.ts           # electron-vite 三端构建配置
 ├── openspec/                         # OpenSpec 变更管理(spec-driven)
@@ -101,13 +104,15 @@ Desktop-pet/
 ├── pets-picture/                     # 立绘源图(版权归 miHoYo,仅供学习)
 ├── resources/                        # 应用图标 / 托盘图标
 ├── scripts/
-│   └── smoke.mjs                     # Docker 镜像产物校验脚本(HEALTHCHECK 用)
+│   ├── smoke.sh                      # 默认 runner 产物校验脚本(HEALTHCHECK 用)
+│   └── smoke.mjs                     # runner-node 变体语法校验(node --check)
 ├── src/                              # 源代码
 │   ├── main/                         # Electron 主进程
 │   │   ├── index.ts                  # 应用入口:窗口/托盘/IPC/生命周期
 │   │   ├── chat.ts                   # 聊天窗口单例与流事件转发
 │   │   ├── icons.ts                  # 应用/托盘图标解析
 │   │   ├── store.ts                  # config.json 持久化
+│   │   ├── user-data-migration.ts    # 更名后 userData 一次性迁移
 │   │   ├── services/
 │   │   │   ├── chat/                 # AI 对话服务
 │   │   │   │   ├── chat-service.ts   # 生成状态机(前置落库/流式/取消)
@@ -171,8 +176,10 @@ openChat({ petId, view })             // 聊天窗口直达指定角色的会话
 
 MIT（代码部分）。美术资源版权归 miHoYo 所有，详见上方 NOTICE。
 
-## 致谢
+## 致谢与贡献者
 
 特别感谢 [kirineko](https://github.com/kirineko/) 的开源项目
 [kirineko/desktop-pet](https://github.com/kirineko/desktop-pet)——本项目的窗口/拖拽/气泡交互、
 流式聊天事件模型与工程结构参考了它的架构与实现。
+
+完整贡献者列表见 [CONTRIBUTORS.md](CONTRIBUTORS.md)(本项目主体由 Kimi K3 完成)。
