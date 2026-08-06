@@ -26,6 +26,12 @@
 - node:sqlite（Electron 内置，零原生依赖）
 - marked + DOMPurify（Markdown 安全渲染）
 
+## 架构总览
+
+![DeskPet 架构总览](docs/assets/architecture.png)
+
+Electron 三进程结构：renderer（桌宠窗口 + 聊天窗口）经 preload 的 contextBridge 与 main 主进程通信；主进程承载 ChatService（SSE 流式对话）、TimerService（休息提醒 + 番茄钟）与 PetRegistry（多角色框架），本地持久化使用 node:sqlite 与 safeStorage 钥匙串级加密。
+
 ## 快速开始
 
 ```bash
