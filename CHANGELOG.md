@@ -1,6 +1,6 @@
 # Changelog
 
-本文件记录「胡桃桌宠」(Hutao Desktop Pet) 项目的版本变更历史。
+本文件记录「二次元桌宠」(Desktop-pet) 项目的版本变更历史。
 
 - 遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定
 - 采用 [语义化版本](https://semver.org/lang/zh-CN/) 2.0.0
@@ -23,6 +23,7 @@
 
 ### Changed
 
+- **产品更名**：「胡桃桌宠」→「二次元桌宠」，GitHub 仓库 `DeskPet` → `Desktop-pet`；macOS 打包产物、托盘/窗口标题同步更新；旧 userData 目录（`胡桃桌宠/`）在首次启动时自动迁移到新目录（`二次元桌宠/`），配置、聊天记录与 API Key 不丢失
 - **多角色框架**：`petId` 全链路透传（渲染层 → preload → IPC → 服务），新增 `pet-registry` 角色注册表（展示名/人设/素材/问候语单一来源），渲染层角色上下文动态化；当前仅注册胡桃一个实例
 - **事件监听器异常可见性**：`safeEmit` 逐监听器隔离派发，异常记录事件通道/监听器名/错误详情；新增可选 `onListenerError` 订阅钩子
 - **流式性能**：数据库落库（120ms 合并）与 Markdown 渲染（requestAnimationFrame 合并）双端节流，长回复不再逐 token 全量写库/重解析
@@ -413,27 +414,27 @@
 
 <!-- 链接定义区（Keep a Changelog 推荐） -->
 
-[Unreleased]: https://github.com/zhenkun26/DeskPet/compare/v2.0.2...HEAD
-[2.0.2]: https://github.com/zhenkun26/DeskPet/compare/v2.0.1...v2.0.2
-[2.0.1]: https://github.com/zhenkun26/DeskPet/compare/v2.0.0...v2.0.1
-[2.0.0]: https://github.com/zhenkun26/DeskPet/compare/v1.7.0...v2.0.0
-[1.7.0]: https://github.com/zhenkun26/DeskPet/compare/v1.6.2...v1.7.0
-[1.6.2]: https://github.com/zhenkun26/DeskPet/compare/v1.6.1...v1.6.2
-[1.6.1]: https://github.com/zhenkun26/DeskPet/compare/v1.6.0...v1.6.1
-[1.6.0]: https://github.com/zhenkun26/DeskPet/compare/v1.5.2...v1.6.0
-[1.5.2]: https://github.com/zhenkun26/DeskPet/compare/v1.5.1...v1.5.2
-[1.5.1]: https://github.com/zhenkun26/DeskPet/compare/v1.5.0...v1.5.1
-[1.5.0]: https://github.com/zhenkun26/DeskPet/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/zhenkun26/DeskPet/compare/v1.3.4...v1.4.0
-[1.3.4]: https://github.com/zhenkun26/DeskPet/compare/v1.3.3...v1.3.4
-[1.3.3]: https://github.com/zhenkun26/DeskPet/compare/v1.3.2...v1.3.3
-[1.3.2]: https://github.com/zhenkun26/DeskPet/compare/v1.3.1...v1.3.2
-[1.3.1]: https://github.com/zhenkun26/DeskPet/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/zhenkun26/DeskPet/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/zhenkun26/DeskPet/compare/v1.1.1...v1.2.0
-[1.1.1]: https://github.com/zhenkun26/DeskPet/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/zhenkun26/DeskPet/compare/v1.0.3...v1.1.0
-[1.0.3]: https://github.com/zhenkun26/DeskPet/compare/v1.0.2...v1.0.3
-[1.0.2]: https://github.com/zhenkun26/DeskPet/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/zhenkun26/DeskPet/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/zhenkun26/DeskPet/releases/tag/v1.0.0
+[Unreleased]: https://github.com/zhenkun26/Desktop-pet/compare/v2.0.2...HEAD
+[2.0.2]: https://github.com/zhenkun26/Desktop-pet/compare/v2.0.1...v2.0.2
+[2.0.1]: https://github.com/zhenkun26/Desktop-pet/compare/v2.0.0...v2.0.1
+[2.0.0]: https://github.com/zhenkun26/Desktop-pet/compare/v1.7.0...v2.0.0
+[1.7.0]: https://github.com/zhenkun26/Desktop-pet/compare/v1.6.2...v1.7.0
+[1.6.2]: https://github.com/zhenkun26/Desktop-pet/compare/v1.6.1...v1.6.2
+[1.6.1]: https://github.com/zhenkun26/Desktop-pet/compare/v1.6.0...v1.6.1
+[1.6.0]: https://github.com/zhenkun26/Desktop-pet/compare/v1.5.2...v1.6.0
+[1.5.2]: https://github.com/zhenkun26/Desktop-pet/compare/v1.5.1...v1.5.2
+[1.5.1]: https://github.com/zhenkun26/Desktop-pet/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/zhenkun26/Desktop-pet/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/zhenkun26/Desktop-pet/compare/v1.3.4...v1.4.0
+[1.3.4]: https://github.com/zhenkun26/Desktop-pet/compare/v1.3.3...v1.3.4
+[1.3.3]: https://github.com/zhenkun26/Desktop-pet/compare/v1.3.2...v1.3.3
+[1.3.2]: https://github.com/zhenkun26/Desktop-pet/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/zhenkun26/Desktop-pet/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/zhenkun26/Desktop-pet/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/zhenkun26/Desktop-pet/compare/v1.1.1...v1.2.0
+[1.1.1]: https://github.com/zhenkun26/Desktop-pet/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/zhenkun26/Desktop-pet/compare/v1.0.3...v1.1.0
+[1.0.3]: https://github.com/zhenkun26/Desktop-pet/compare/v1.0.2...v1.0.3
+[1.0.2]: https://github.com/zhenkun26/Desktop-pet/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/zhenkun26/Desktop-pet/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/zhenkun26/Desktop-pet/releases/tag/v1.0.0
