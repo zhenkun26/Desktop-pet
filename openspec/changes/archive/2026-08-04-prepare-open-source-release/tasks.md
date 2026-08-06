@@ -23,7 +23,7 @@
 
 ## 4. GitHub 上线（手动步骤，需账号权限）
 
-- [x] 4.1 创建公开仓库并推送（https://github.com/zhenkun26/DeskPet，main 已推送）
+- [x] 4.1 创建公开仓库并推送（https://github.com/zhenkun26/Desktop-pet，main 已推送）
 - [x] 4.2 开启 main 分支保护：Ruleset `protect-main` 已创建（必须 PR、状态检查必过、禁删除/强推；solo 仓库未强制 approval）
 - [x] 4.3 验证 CI 首次运行通过（41s，typecheck/build/test/gitleaks 全绿）；按需配置 GitHub Secret
 - [x] 4.4 发版 2.0.2：package.json / package-lock / 测试 mock / CHANGELOG（[2.0.2] 段）已同步；聊天窗口标题经 `app.getVersion()` 自动跟随

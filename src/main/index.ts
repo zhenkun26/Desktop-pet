@@ -35,6 +35,7 @@ import { closeChatDb, getChatDb } from './services/chat/chat-db'
 import { TimerService } from './services/timer/timer-service'
 import { getPet, listPets } from './services/pet/pet-registry'
 import { loadConfig, saveConfig } from './store'
+import { migrateLegacyUserData } from './user-data-migration'
 import {
   DEFAULT_CONFIG,
   type OpenChatOptions,
@@ -242,7 +243,7 @@ function showAppContextMenu(): void {
 
 function createTray(): void {
   tray = new Tray(resolveTrayIcon())
-  tray.setToolTip('胡桃桌宠')
+  tray.setToolTip('二次元桌宠')
   rebuildTrayMenu()
   tray.on('click', () => {
     if (!mainWindow || !mainWindow.isVisible() || !config.visible) {
@@ -258,7 +259,9 @@ function createTray(): void {
 
 function rebuildTrayMenu(): void {
   if (!tray) return
-  tray.setToolTip(config.visible ? '胡桃桌宠' : '胡桃桌宠（已隐藏，点击显示）')
+  tray.setToolTip(
+    config.visible ? '二次元桌宠' : '二次元桌宠（已隐藏，点击显示）'
+  )
   const menu = Menu.buildFromTemplate([
     {
       label: config.visible ? '隐藏宠物' : '显示宠物',
@@ -412,6 +415,8 @@ function wireBusinessEvents(): void {
 }
 
 app.whenReady().then(() => {
+  // 产品更名迁移：旧 userData（胡桃桌宠）→ 新 userData，仅首次执行
+  migrateLegacyUserData()
   config = loadConfig()
   // 启动时强制可见，清掉上次「隐藏」导致的无法恢复状态
   config.visible = true

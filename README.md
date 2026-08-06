@@ -1,6 +1,6 @@
-# 胡桃桌宠 (DeskPet)
+# 二次元桌宠 (Desktop-pet)
 
-[![CI](https://github.com/zhenkun26/DeskPet/actions/workflows/ci.yml/badge.svg)](https://github.com/zhenkun26/DeskPet/actions/workflows/ci.yml)
+[![CI](https://github.com/zhenkun26/Desktop-pet/actions/workflows/ci.yml/badge.svg)](https://github.com/zhenkun26/Desktop-pet/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Electron 39](https://img.shields.io/badge/Electron-39-47848F.svg?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -8,7 +8,7 @@
 [![OpenSpec](https://img.shields.io/badge/OpenSpec-spec--driven-blueviolet)](openspec/)
 [![Tests](https://img.shields.io/badge/tests-76%20passed-brightgreen)](docs/ADVERSARIAL_REVIEW_REPORT.md)
 
-一个 Electron 桌面宠物陪伴应用：以胡桃为形象的透明置顶桌宠，支持拖拽互动、AI 角色扮演对话、休息提醒与番茄钟。
+一个 Electron 二次元桌宠陪伴应用：以角色形象呈现的透明置顶桌宠，支持拖拽互动、AI 角色扮演对话、休息提醒与番茄钟；当前内置角色为胡桃，并预留多角色扩展框架（见「新增桌宠」）。
 
 > ⚠️ **NOTICE（版权声明）**：本仓库中的胡桃立绘、角色形象等美术资源版权归 miHoYo（米哈游）所有，仅用于个人学习与交流，请勿用于商业用途或二次分发。如需商用，请替换为自有素材。
 
@@ -51,7 +51,7 @@ npm run build:mac  # 打包 macOS dmg（electron-builder）
 > 完整 tree(排除 `node_modules/`、`out/`、`release/`、`dist/`、`coverage/` 等生成目录);行尾注释说明每个文件/目录的作用。
 
 ```
-DeskPet/
+Desktop-pet/
 ├── .github/                          # GitHub 治理:CI、发版工作流、贡献模板
 │   ├── workflows/
 │   │   ├── ci.yml                    # CI:类型检查 + 构建 + 测试 + gitleaks 密钥扫描
@@ -139,6 +139,27 @@ DeskPet/
 3. 按 tasks 实现，完成后 `openspec archive <change-name>` 归档
 
 功能或修复类变更必须先生成 OpenSpec change（见 docs/CONTRIBUTING.md）。
+
+## 新增桌宠（扩展角色）
+
+多角色框架已就绪，新增一个桌宠角色**不需要改业务逻辑**，只需四步：
+
+1. **素材**：把角色立绘放到 `src/renderer/assets/<petId>.png`（如 `ganyu.png`）；
+2. **注册表登记**：在 `src/main/services/pet/pet-registry.ts` 的 `PET_REGISTRY` 中登记一条 `PetDescriptor`——`petId` / `displayName` / `assetFileName` / `coreIdentity` / `speechStyle` / `greetings`（分时段问候语）；
+3. **类型登记**：在 `src/shared/types.ts` 的 `PetId` 联合类型与 `PET_IDS` / `PET_LABELS` 中增加角色标识；
+4. **人设（可选）**：需要独立默认人设时，在 `personas.ts` 的 `BUILTIN_PERSONAS` 增加条目；不登记则使用注册表字段。
+
+接口契约（已全链路打通，无需改动）：
+
+```ts
+window.desktopPet.listPets()          // Promise<PetDescriptor[]>  全部注册角色
+window.desktopPet.getPet(petId)       // Promise<PetDescriptor>    按角色查询（未注册抛错）
+openChat({ petId, view })             // 聊天窗口直达指定角色的会话/人设/番茄钟
+```
+
+- 会话与人设数据按 `pet_id` 自动隔离（`persona_profiles` / `conversations` 表）
+- 渲染层素材经 `pet-assets.ts` 动态解析，打包后自动带哈希 URL
+- 桌宠窗口按 `config.petId` 渲染立绘与时段问候
 
 ## License
 

@@ -3,4 +3,4 @@ kind: Namespace
 metadata:
   name: hutao-pet
   labels:
-    app.kubernetes.io/part-of: hutao-desktop-pet
+    app.kubernetes.io/part-of: desktop-pet

@@ -81,7 +81,7 @@ gh auth status
 ```bash
 git checkout -b codex/electron-hardening
 # 按选定方案分次 git add + git commit
-gh repo create DeskPet --public --source . --remote origin --push
+gh repo create Desktop-pet --public --source . --remote origin --push
 gh pr create --title "feat: Electron 重构落地 + 多角色框架 + 生产级加固" --body "见 docs/EXECUTION_PLAN.md / docs/ADVERSARIAL_REVIEW_REPORT.md"
 ```
 
@@ -94,7 +94,7 @@ PR 触发 `.github/workflows/ci.yml`(typecheck + build + vitest + gitleaks)。�
 推荐用 GitHub Ruleset(替代旧 Branch Protection):
 
 ```bash
-gh api repos/zhenkun26/DeskPet/rulesets -f name=protect-main \
+gh api repos/zhenkun26/Desktop-pet/rulesets -f name=protect-main \
   -f target=branch -f enforcement=active \
   -f 'conditions[0]=...'   # 交互确认后我用完整 JSON 创建
 ```
@@ -158,6 +158,6 @@ docker run --rm hutao-pet-ci-node:latest
 
 1. **提交粒度**:方案 A(2 提交,推荐)还是方案 B(4 提交)?
 2. **分支保护**:1 approval(需第二账号/管理员)还是仅「PR + 状态检查」(solo 推荐)?
-3. **仓库名**:已确定为 `DeskPet`(公开)
+3. **仓库名**:已确定为 `Desktop-pet`(公开)
 4. **发版**:Phase 4 是否顺带发版 2.0.2?
 5. **OrbStack**:授权我 `open -a OrbStack` 启动,还是你手动启动?

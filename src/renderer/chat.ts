@@ -61,7 +61,7 @@ function petAvatarUrl(): string {
 function applyPetContext(): void {
   const pet = state.currentPet
   if (!pet) return
-  document.title = `${pet.displayName}桌宠 - 聊天`
+  document.title = `${pet.displayName} · 二次元桌宠 - 聊天`
   const avatar = document.querySelector<HTMLImageElement>('.header-avatar')
   if (avatar) avatar.src = petAvatarUrl()
   const nameEl = document.querySelector<HTMLElement>('.header-name')

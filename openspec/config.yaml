@@ -5,7 +5,7 @@ schema: spec-driven
 # Add your tech stack, conventions, style guides, domain knowledge, etc.
 context: |
   技术栈: Electron 39 + TypeScript 5.7 + electron-vite 2 + Vite 5
-  项目: 胡桃桌宠 (hutao-desktop-pet) —— 桌面宠物(透明置顶窗口) + AI 角色对话 + 休息提醒/番茄钟陪伴
+  项目: 二次元桌宠 (Desktop-pet) —— 桌面宠物(透明置顶窗口) + AI 角色对话 + 休息提醒/番茄钟陪伴
   进程结构: src/main (Electron 主进程), src/preload (preload 桥), src/renderer (渲染层), src/shared (共享类型)
   关键能力: DeepSeek 对话(SSE 流式, chat 服务), SQLite 聊天记录 (chat-db), marked + DOMPurify 渲染 Markdown
   工程约定: 构建用 electron-vite; 变更走 OpenSpec spec-driven 流程; 提交信息使用 conventional commits 风格

@@ -1,5 +1,5 @@
 appId: com.hutao-desktop-pet
-productName: 胡桃桌宠
+productName: 二次元桌宠
 directories:
   output: release
 files:
@@ -11,7 +11,7 @@ mac:
   target:
     - dmg
 dmg:
-  title: 胡桃桌宠
+  title: 二次元桌宠
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true

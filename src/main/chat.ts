@@ -41,7 +41,7 @@ export function openChatWindow(options: OpenChatOptions = {}): void {
     height: CHAT_HEIGHT,
     minWidth: 380,
     minHeight: 480,
-    title: `胡桃桌宠 v${app.getVersion()} - 聊天`,
+    title: `二次元桌宠 v${app.getVersion()} - 聊天`,
     show: false,
     backgroundColor: '#fdf6f0',
     autoHideMenuBar: true,

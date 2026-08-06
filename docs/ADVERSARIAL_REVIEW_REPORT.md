@@ -1,4 +1,4 @@
-# 胡桃桌宠 — 最终对抗性生产级审查与验收报告
+# 二次元桌宠 — 最终对抗性生产级审查与验收报告
 
 > 审查日期:2026-08-04 | 审查标准:以"即将部署到金融级核心交易系统"为对抗基线
 > 结论:**未发现 P0 级必现崩溃/数据丢失/安全入侵路径;7 项 P1 已全部修复;76 个测试全绿;核心服务范围行覆盖率 82.21%**。
@@ -279,7 +279,7 @@ kubectl -n hutao-pet scale deployment/hutao-pet-api --replicas=0
 
 ### 桌面应用数据兜底
 
-- 聊天数据:SQLite(WAL)位于 `~/Library/Application Support/胡桃桌宠/chat.db`,回滚前先复制该目录;
+- 聊天数据:SQLite(WAL)位于 `~/Library/Application Support/二次元桌宠/chat.db`,回滚前先复制该目录;
 - API Key:存于系统钥匙串级 safeStorage,回滚后需重新在设置页填入;
 - 回滚后首次启动会重新执行旧库迁移(幂等:新库非空则跳过)。
 
