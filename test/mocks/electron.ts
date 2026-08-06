@@ -8,7 +8,7 @@ const TEST_USER_DATA_DIR = mkdtempSync(join(tmpdir(), 'hutao-pet-test-'))
 export const app = {
   getPath: (name: string): string =>
     name === 'userData' ? TEST_USER_DATA_DIR : TEST_USER_DATA_DIR,
-  getVersion: (): string => '2.0.2'
+  getVersion: (): string => '2.0.3'
 }
 
 export const safeStorage = {

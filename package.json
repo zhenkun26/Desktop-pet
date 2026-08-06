@@ -1,10 +1,24 @@
 {
   "name": "hutao-desktop-pet",
-  "version": "2.0.2",
-  "description": "二次元桌宠 v2.0.2 - Electron + AI 角色对话 + 休息提醒/番茄钟陪伴（架构参照 kirineko/desktop-pet）",
+  "version": "2.0.3",
+  "description": "二次元桌宠 v2.0.3 - Electron + AI 角色对话 + 休息提醒/番茄钟陪伴（架构参照 kirineko/desktop-pet）",
   "main": "./out/main/index.js",
   "author": "yuzheng",
   "license": "MIT",
+  "contributors": [
+    {
+      "name": "yuzheng",
+      "role": "产品与架构决策、发布"
+    },
+    {
+      "name": "Kimi K3",
+      "role": "主体代码与工程实现"
+    },
+    {
+      "name": "kirineko",
+      "role": "参考项目 desktop-pet"
+    }
+  ],
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
