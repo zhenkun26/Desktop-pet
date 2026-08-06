@@ -8,9 +8,9 @@
 [![OpenSpec](https://img.shields.io/badge/OpenSpec-spec--driven-blueviolet)](openspec/)
 [![Tests](https://img.shields.io/badge/tests-81%20passed-brightgreen)](docs/ADVERSARIAL_REVIEW_REPORT.md)
 
-> **中文**:一个 Electron 二次元桌宠陪伴应用:以角色形象呈现的透明置顶桌宠,支持拖拽互动、AI 角色扮演对话、休息提醒与番茄钟;当前内置角色为胡桃,并预留多角色扩展框架(见「新增桌宠 / Adding a New Pet」)。
+> 一个 Electron 二次元桌宠陪伴应用:以角色形象呈现的透明置顶桌宠,支持拖拽互动、AI 角色扮演对话、休息提醒与番茄钟;当前内置角色为胡桃,并预留多角色扩展框架(见「新增桌宠 / Adding a New Pet」)。
 >
-> **EN**: An Electron anime-style desktop pet companion: a transparent always-on-top pet with drag-and-drop, AI roleplay chat, rest reminders and a Pomodoro timer. It currently ships with Hutao and includes a ready multi-character framework (see "Adding a New Pet").
+> An Electron anime-style desktop pet companion: a transparent always-on-top pet with drag-and-drop, AI roleplay chat, rest reminders and a Pomodoro timer. It currently ships with Hutao and includes a ready multi-character framework (see "Adding a New Pet").
 
 > ⚠️ **NOTICE / 版权声明**:胡桃立绘、角色形象等美术资源版权归 miHoYo(米哈游)所有,仅限个人学习与交流,请勿商用或二次分发;商用请替换为自有素材。 / Art assets such as the Hutao artwork are copyrighted by miHoYo and provided for personal learning only; replace them for commercial use.
 
@@ -32,9 +32,9 @@
 
 ![二次元桌宠架构总览 / Architecture Overview](docs/assets/architecture.png)
 
-**中文**:Electron 三进程结构:renderer(桌宠窗口 + 聊天窗口)经 preload 的 contextBridge 与 main 主进程通信;主进程承载 ChatService(SSE 流式对话)、TimerService(休息提醒 + 番茄钟)与 PetRegistry(多角色框架),本地持久化使用 node:sqlite 与 safeStorage 钥匙串级加密。
+Electron 三进程结构:renderer(桌宠窗口 + 聊天窗口)经 preload 的 contextBridge 与 main 主进程通信;主进程承载 ChatService(SSE 流式对话)、TimerService(休息提醒 + 番茄钟)与 PetRegistry(多角色框架),本地持久化使用 node:sqlite 与 safeStorage 钥匙串级加密。
 
-**EN**: Three-process Electron architecture: renderer (pet window + chat window) talks to main via preload's contextBridge; main hosts ChatService (SSE chat), TimerService (rest reminder + Pomodoro) and PetRegistry (multi-character framework); persistence uses node:sqlite and safeStorage keychain-level encryption.
+Three-process Electron architecture: renderer (pet window + chat window) talks to main via preload's contextBridge; main hosts ChatService (SSE chat), TimerService (rest reminder + Pomodoro) and PetRegistry (multi-character framework); persistence uses node:sqlite and safeStorage keychain-level encryption.
 
 ## 快速开始 / Quick Start
 
@@ -136,15 +136,15 @@ Desktop-pet/
 
 ## OpenSpec 工作流 / OpenSpec Workflow
 
-**中文**:本仓库使用 [OpenSpec](https://github.com/Fission-AI/OpenSpec) 的 spec-driven 流程管理变更:1) `openspec new change <name>` 创建变更;2) 依次产出 proposal → specs → design → tasks;3) 按 tasks 实现,完成后 `openspec archive <change-name>` 归档。功能或修复类变更必须先生成 OpenSpec change(见 docs/CONTRIBUTING.md)。
+本仓库使用 [OpenSpec](https://github.com/Fission-AI/OpenSpec) 的 spec-driven 流程管理变更:1) `openspec new change <name>` 创建变更;2) 依次产出 proposal → specs → design → tasks;3) 按 tasks 实现,完成后 `openspec archive <change-name>` 归档。功能或修复类变更必须先生成 OpenSpec change(见 docs/CONTRIBUTING.md)。
 
-**EN**: This repo manages changes with the [OpenSpec](https://github.com/Fission-AI/OpenSpec) spec-driven workflow: 1) `openspec new change <name>`; 2) produce proposal → specs → design → tasks; 3) implement tasks, then `openspec archive <change-name>`. Feature or fix changes must start with an OpenSpec change (see docs/CONTRIBUTING.md).
+This repo manages changes with the [OpenSpec](https://github.com/Fission-AI/OpenSpec) spec-driven workflow: 1) `openspec new change <name>`; 2) produce proposal → specs → design → tasks; 3) implement tasks, then `openspec archive <change-name>`. Feature or fix changes must start with an OpenSpec change (see docs/CONTRIBUTING.md).
 
 ## 新增桌宠 / Adding a New Pet
 
-**中文**:多角色框架已就绪,新增一个桌宠角色**不需要改业务逻辑**,只需四步:
+多角色框架已就绪,新增一个桌宠角色**不需要改业务逻辑**,只需四步:
 
-**EN**: The multi-character framework is ready — adding a pet requires **no business-logic changes**, just four steps:
+The multi-character framework is ready — adding a pet requires **no business-logic changes**, just four steps:
 
 1. **素材 / Assets**:把角色立绘放到 `src/renderer/assets/<petId>.png`(如 `ganyu.png`)/ put the artwork at `src/renderer/assets/<petId>.png` (e.g. `ganyu.png`)
 2. **注册表登记 / Register**:在 `src/main/services/pet/pet-registry.ts` 的 `PET_REGISTRY` 登记一条 `PetDescriptor`(`petId` / `displayName` / `assetFileName` / `coreIdentity` / `speechStyle` / `greetings`)/ add a `PetDescriptor` entry
@@ -165,12 +165,12 @@ openChat({ petId, view })         // 直达指定角色的会话/人设/番茄�
 
 ## License / 许可证
 
-**中文**:代码部分 MIT;美术资源版权归 miHoYo 所有,详见上方 NOTICE。
+代码部分 MIT;美术资源版权归 miHoYo 所有,详见上方 NOTICE。
 
-**EN**: Code is MIT; art assets are copyrighted by miHoYo — see the NOTICE above.
+Code is MIT; art assets are copyrighted by miHoYo — see the NOTICE above.
 
 ## 致谢与贡献者 / Acknowledgments & Contributors
 
-**中文**:特别感谢 [kirineko](https://github.com/kirineko/) 的开源项目 [kirineko/desktop-pet](https://github.com/kirineko/desktop-pet)——本项目的窗口/拖拽/气泡交互、流式聊天事件模型与工程结构参考了它的架构与实现。完整贡献者列表见 [CONTRIBUTORS.md](CONTRIBUTORS.md)(本项目主体由 Kimi K3 完成)。
+特别感谢 [kirineko](https://github.com/kirineko/) 的开源项目 [kirineko/desktop-pet](https://github.com/kirineko/desktop-pet)——本项目的窗口/拖拽/气泡交互、流式聊天事件模型与工程结构参考了它的架构与实现。
 
-**EN**: Special thanks to [kirineko](https://github.com/kirineko/) for the open-source [kirineko/desktop-pet](https://github.com/kirineko/desktop-pet) — this project's window/drag/bubble interactions, streaming chat event model and engineering structure reference its architecture. Full contributor list: [CONTRIBUTORS.md](CONTRIBUTORS.md) (primary implementation by Kimi K3).
+Special thanks to [kirineko](https://github.com/kirineko/) for the open-source [kirineko/desktop-pet](https://github.com/kirineko/desktop-pet) — this project's window/drag/bubble interactions, streaming chat event model and engineering structure reference its architecture.
