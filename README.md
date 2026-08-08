@@ -12,6 +12,8 @@
 >
 > **A transparent, always-on-top anime desktop pet companion built with Electron.** It presents an anime character as a draggable pet and offers AI roleplay chat, rest reminders, and a Pomodoro timer. The app currently ships with Hutao and provides a multi-character extension framework (see “Adding a New Pet”).
 
+工程记录 / Engineering records: [技术决策](docs/DECISIONS.md) · [精选问题复盘](docs/PROBLEM_REVIEWS.md)
+
 > ⚠️ **NOTICE / 版权声明**：胡桃立绘及角色形象等美术资源版权归 miHoYo（米哈游）所有，仅供个人学习与交流，禁止商用或二次分发；如需商用，请替换为自有素材。 / The Hutao artwork and related character assets are copyrighted by miHoYo and provided for personal learning only. Commercial use or redistribution is prohibited; replace the assets with your own for commercial use.
 
 ## 功能 / Features
