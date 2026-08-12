@@ -205,3 +205,5 @@ The code is licensed under MIT; art assets are copyrighted by miHoYo — see the
 特别感谢 [kirineko](https://github.com/kirineko/) 的开源项目 [kirineko/desktop-pet](https://github.com/kirineko/desktop-pet)：本项目的窗口/拖拽/气泡交互、流式聊天事件模型与工程结构参考了其架构与实现。
 
 Special thanks to [kirineko](https://github.com/kirineko/) for the open-source [kirineko/desktop-pet](https://github.com/kirineko/desktop-pet): this project references its architecture and implementation for window/drag/bubble interaction, the streaming chat event model, and the engineering structure.
+
+> 本项目由 Vibe Coding 辅助实现落地。Built with Vibe Coding.
