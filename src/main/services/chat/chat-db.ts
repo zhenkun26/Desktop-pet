@@ -86,7 +86,8 @@ export function getChatDb(): LooseDb {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
       last_message_preview TEXT,
-      response_language TEXT NOT NULL DEFAULT 'zh-CN'
+      response_language TEXT NOT NULL DEFAULT 'zh-CN',
+      model_profile_id TEXT
     );
 
     CREATE TABLE IF NOT EXISTS messages (
@@ -97,6 +98,11 @@ export function getChatDb(): LooseDb {
       created_at INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'complete',
       error_code TEXT,
+      model_profile_id TEXT,
+      provider_connection_id TEXT,
+      provider_name TEXT,
+      model_id TEXT,
+      model_name TEXT,
       FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
     );
 
@@ -107,6 +113,8 @@ export function getChatDb(): LooseDb {
   `)
   try {
     ensureConversationLanguageColumn(database)
+    ensureConversationModelColumn(database)
+    ensureMessageModelSnapshotColumns(database)
   } catch (error) {
     database.close()
     throw error
@@ -142,6 +150,29 @@ function ensureConversationLanguageColumn(database: LooseDb): void {
   }
 }
 
+function ensureConversationModelColumn(database: LooseDb): void {
+  const columns = database.prepare('PRAGMA table_info(conversations)').all()
+  if (columns.some((column) => column.name === 'model_profile_id')) return
+  database.exec('ALTER TABLE conversations ADD COLUMN model_profile_id TEXT')
+}
+
+function ensureMessageModelSnapshotColumns(database: LooseDb): void {
+  const columns = database.prepare('PRAGMA table_info(messages)').all()
+  const existing = new Set(columns.map((column) => String(column.name)))
+  const additions: Array<[string, string]> = [
+    ['model_profile_id', 'TEXT'],
+    ['provider_connection_id', 'TEXT'],
+    ['provider_name', 'TEXT'],
+    ['model_id', 'TEXT'],
+    ['model_name', 'TEXT']
+  ]
+  for (const [name, type] of additions) {
+    if (!existing.has(name)) {
+      database.exec(`ALTER TABLE messages ADD COLUMN ${name} ${type}`)
+    }
+  }
+}
+
 /**
  * 一次性迁移旧 Tauri 数据：新库为空且旧库存在时 ATTACH 复制。
  * 旧库时间戳是「秒级」，新库统一「毫秒」；status 'ok' 映射为 'complete'。
@@ -161,18 +192,21 @@ function migrateLegacyDb(database: LooseDb): void {
       database.exec(`
         INSERT INTO conversations (
           id, pet_id, title, created_at, updated_at, last_message_preview,
-          response_language
+          response_language, model_profile_id
         )
         SELECT id, pet_id, title, created_at * 1000, updated_at * 1000,
                NULLIF(last_message_preview, ''), ${sqlStringLiteral(
                  DEFAULT_CHAT_LANGUAGE
-               )}
+               )}, NULL
         FROM legacy.conversations;
 
-        INSERT INTO messages (id, conversation_id, role, content, created_at, status, error_code)
+        INSERT INTO messages (
+          id, conversation_id, role, content, created_at, status, error_code,
+          model_profile_id, provider_connection_id, provider_name, model_id, model_name
+        )
         SELECT id, conversation_id, role, content, created_at * 1000,
                CASE status WHEN 'ok' THEN 'complete' ELSE status END,
-               error_code
+               error_code, NULL, NULL, NULL, NULL, NULL
         FROM legacy.messages;
       `)
     })
@@ -219,7 +253,9 @@ function rowToConversation(row: Record<string, unknown>): ConversationRecord {
       row.last_message_preview == null
         ? null
         : String(row.last_message_preview),
-    responseLanguage: normalizeChatLanguage(row.response_language)
+    responseLanguage: normalizeChatLanguage(row.response_language),
+    modelProfileId:
+      row.model_profile_id == null ? null : String(row.model_profile_id)
   }
 }
 
@@ -234,7 +270,17 @@ function rowToMessage(row: Record<string, unknown>): ChatMessageRecord {
     errorCode:
       row.error_code == null
         ? null
-        : (row.error_code as ChatMessageRecord['errorCode'])
+        : (row.error_code as ChatMessageRecord['errorCode']),
+    modelProfileId:
+      row.model_profile_id == null ? null : String(row.model_profile_id),
+    providerConnectionId:
+      row.provider_connection_id == null
+        ? null
+        : String(row.provider_connection_id),
+    providerName:
+      row.provider_name == null ? null : String(row.provider_name),
+    modelId: row.model_id == null ? null : String(row.model_id),
+    modelName: row.model_name == null ? null : String(row.model_name)
   }
 }
 
@@ -292,7 +338,8 @@ export function listConversations(petId: PetId): ConversationRecord[] {
 export function createConversation(
   petId: PetId,
   title?: string,
-  responseLanguage: ChatLanguage = DEFAULT_CHAT_LANGUAGE
+  responseLanguage: ChatLanguage = DEFAULT_CHAT_LANGUAGE,
+  modelProfileId: string | null = null
 ): ConversationRecord {
   const now = Date.now()
   const id = randomUUID()
@@ -309,8 +356,8 @@ export function createConversation(
     .prepare(
       `INSERT INTO conversations (
          id, pet_id, title, created_at, updated_at, last_message_preview,
-         response_language
-       ) VALUES (?, ?, ?, ?, ?, NULL, ?)`
+         response_language, model_profile_id
+       ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`
     )
     .run(
       id,
@@ -318,7 +365,8 @@ export function createConversation(
       resolvedTitle,
       now,
       now,
-      normalizeChatLanguage(responseLanguage)
+      normalizeChatLanguage(responseLanguage),
+      modelProfileId
     )
   return getConversation(id)!
 }
@@ -362,6 +410,24 @@ export function getConversationResponseLanguage(
 ): ChatLanguage | null {
   const conversation = getConversation(id)
   return conversation?.responseLanguage ?? null
+}
+
+export function getConversationModelProfile(id: string): string | null {
+  return getConversation(id)?.modelProfileId ?? null
+}
+
+export function updateConversationModelProfile(
+  id: string,
+  modelProfileId: string | null
+): ConversationRecord | null {
+  getChatDb()
+    .prepare(
+      `UPDATE conversations
+       SET model_profile_id = ?, updated_at = ?
+       WHERE id = ?`
+    )
+    .run(modelProfileId, Date.now(), id)
+  return getConversation(id)
 }
 
 export function deleteConversation(id: string): boolean {
@@ -411,6 +477,11 @@ export function insertMessage(input: {
   content: string
   status?: ChatMessageRecord['status']
   errorCode?: ChatMessageRecord['errorCode']
+  modelProfileId?: string | null
+  providerConnectionId?: string | null
+  providerName?: string | null
+  modelId?: string | null
+  modelName?: string | null
   createdAt?: number
 }): ChatMessageRecord {
   const id = input.id ?? randomUUID()
@@ -421,8 +492,9 @@ export function insertMessage(input: {
     database
       .prepare(
         `INSERT INTO messages (
-           id, conversation_id, role, content, created_at, status, error_code
-         ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+           id, conversation_id, role, content, created_at, status, error_code,
+           model_profile_id, provider_connection_id, provider_name, model_id, model_name
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         id,
@@ -431,7 +503,12 @@ export function insertMessage(input: {
         input.content,
         createdAt,
         status,
-        input.errorCode ?? null
+        input.errorCode ?? null,
+        input.modelProfileId ?? null,
+        input.providerConnectionId ?? null,
+        input.providerName ?? null,
+        input.modelId ?? null,
+        input.modelName ?? null
       )
     const preview = input.content.trim().slice(0, 80) || null
     if (preview != null) {

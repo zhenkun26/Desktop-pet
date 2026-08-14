@@ -38,6 +38,7 @@ export interface PetConfig {
   windowY: number | null
   visible: boolean
   defaultResponseLanguage: ChatLanguage
+  defaultModelProfileId?: string | null
 }
 
 export const DEFAULT_CONFIG: PetConfig = {
@@ -46,7 +47,8 @@ export const DEFAULT_CONFIG: PetConfig = {
   windowX: null,
   windowY: null,
   visible: true,
-  defaultResponseLanguage: DEFAULT_CHAT_LANGUAGE
+  defaultResponseLanguage: DEFAULT_CHAT_LANGUAGE,
+  defaultModelProfileId: 'deepseek-default'
 }
 
 /** 主进程 → 桌宠窗口的业务事件 */
@@ -94,6 +96,7 @@ export interface ConversationRecord {
   updatedAt: number
   lastMessagePreview: string | null
   responseLanguage: ChatLanguage
+  modelProfileId?: string | null
 }
 
 export interface ChatMessageRecord {
@@ -104,11 +107,20 @@ export interface ChatMessageRecord {
   createdAt: number
   status: 'complete' | 'streaming' | 'error' | 'cancelled'
   errorCode?: ChatErrorCode | null
+  modelProfileId?: string | null
+  providerConnectionId?: string | null
+  providerName?: string | null
+  modelId?: string | null
+  modelName?: string | null
 }
 
 export type ChatErrorCode =
   | 'missing_api_key'
+  | 'missing_credential'
   | 'invalid_api_key'
+  | 'invalid_credential'
+  | 'model_not_supported'
+  | 'provider_unavailable'
   | 'rate_limited'
   | 'network'
   | 'timeout'
@@ -121,6 +133,86 @@ export interface ApiKeyStatus {
   configured: boolean
   masked: string | null
   encryptionAvailable: boolean
+}
+
+/** 供应商协议类型。首期支持 OpenAI-compatible 文本聊天协议。 */
+export type ProviderType = 'openai-compatible'
+
+export const PROVIDER_TYPES: ProviderType[] = ['openai-compatible']
+
+export interface CredentialStatus {
+  id: string
+  configured: boolean
+  masked: string | null
+  encryptionAvailable: boolean
+  lastTestedAt: number | null
+}
+
+export interface ProviderConnection {
+  id: string
+  providerType: ProviderType
+  displayName: string
+  baseUrl: string
+  credentialId: string
+  enabled: boolean
+  allowLocalhost: boolean
+  privacyConfirmed: boolean
+  updatedAt: number
+}
+
+export interface ModelCapabilities {
+  streaming: boolean
+  text: boolean
+}
+
+export interface ModelProfile {
+  id: string
+  connectionId: string
+  modelId: string
+  displayName: string
+  enabled: boolean
+  capabilities: ModelCapabilities
+  updatedAt: number
+}
+
+export interface ProviderConfigSnapshot {
+  modelProfileId: string
+  providerConnectionId: string
+  providerType: ProviderType
+  providerName: string
+  baseUrl: string
+  modelId: string
+  modelName: string
+  credentialId: string
+}
+
+export interface ProviderConfig {
+  connections: ProviderConnection[]
+  models: ModelProfile[]
+}
+
+export interface ProviderConnectionInput {
+  id?: string
+  providerType: ProviderType
+  displayName: string
+  baseUrl: string
+  credentialId?: string
+  enabled?: boolean
+  allowLocalhost?: boolean
+}
+
+export interface ModelProfileInput {
+  id?: string
+  connectionId: string
+  modelId: string
+  displayName: string
+  enabled?: boolean
+  capabilities?: Partial<ModelCapabilities>
+}
+
+export interface SetCredentialInput {
+  credentialId: string
+  apiKey: string
 }
 
 /**
@@ -189,6 +281,24 @@ export interface SendChatMessageInput {
   content: string
 }
 
+export interface ProviderChatMessage {
+  role: ChatMessageRole
+  content: string
+}
+
+export interface ProviderChatRequest {
+  snapshot: ProviderConfigSnapshot
+  messages: ProviderChatMessage[]
+  signal?: AbortSignal
+  onDelta?: (delta: string) => void
+}
+
+export type ProviderStreamEvent =
+  | { type: 'delta'; delta: string }
+  | { type: 'done'; content: string }
+  | { type: 'error'; code: ChatErrorCode; message: string }
+  | { type: 'cancelled' }
+
 export interface UpdatePersonaInput {
   petId: PetId
   fields: PersonaProfileFields
@@ -251,6 +361,22 @@ export interface DesktopPetApi {
   setApiKey: (apiKey: string) => Promise<ApiKeyStatus>
   clearApiKey: () => Promise<ApiKeyStatus>
   testApiKey: (apiKey?: string) => Promise<{ ok: boolean; message: string }>
+  getProviderConfig: () => Promise<ProviderConfig>
+  saveProviderConnection: (
+    input: ProviderConnectionInput
+  ) => Promise<ProviderConnection>
+  deleteProviderConnection: (connectionId: string) => Promise<{ ok: boolean }>
+  saveModelProfile: (input: ModelProfileInput) => Promise<ModelProfile>
+  deleteModelProfile: (modelProfileId: string) => Promise<{ ok: boolean }>
+  setDefaultModelProfile: (modelProfileId: string | null) => Promise<PetConfig>
+  getCredentialStatuses: () => Promise<CredentialStatus[]>
+  setCredential: (input: SetCredentialInput) => Promise<CredentialStatus>
+  clearCredential: (credentialId: string) => Promise<CredentialStatus>
+  testCredential: (
+    credentialId: string,
+    modelProfileId?: string
+  ) => Promise<{ ok: boolean; message: string }>
+  confirmProviderPrivacy: (connectionId: string) => Promise<ProviderConnection>
   getPersonaProfile: (petId: PetId) => Promise<PersonaProfile>
   updatePersonaProfile: (input: UpdatePersonaInput) => Promise<PersonaProfile>
   listConversations: (petId: PetId) => Promise<ConversationRecord[]>
@@ -264,6 +390,13 @@ export interface DesktopPetApi {
   setConversationResponseLanguage: (
     conversationId: string,
     language: ChatLanguage
+  ) => Promise<ConversationRecord | null>
+  getConversationModelProfile: (
+    conversationId: string
+  ) => Promise<string | null>
+  setConversationModelProfile: (
+    conversationId: string,
+    modelProfileId: string | null
   ) => Promise<ConversationRecord | null>
   renameConversation: (
     conversationId: string,

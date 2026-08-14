@@ -7,12 +7,14 @@ import {
   type ChatStreamEvent,
   type PetBusinessEvent,
   type PetId,
+  type ProviderChatMessage,
   type SendChatMessageInput
 } from '../../../shared/types'
 import {
   createConversation,
   deleteConversation,
   getConversation,
+  getConversationModelProfile,
   getConversationResponseLanguage,
   getConversationMessages,
   getPersonaProfile,
@@ -21,23 +23,34 @@ import {
   listConversations,
   renameConversation,
   updateConversationResponseLanguage,
+  updateConversationModelProfile,
   updateMessage,
   updatePersonaProfile
 } from './chat-db'
-import {
-  DeepSeekApiError,
-  streamChatCompletion,
-  testApiKeyConnection,
-  type DeepSeekChatMessage
-} from './deepseek-client'
 import { buildSystemPrompt } from './prompt-builder'
 import {
   clearApiKey,
-  getApiKey,
   getApiKeyStatus,
   setApiKey,
   validateApiKeyFormat
 } from './secrets-store'
+import {
+  clearCredential,
+  getCredential,
+  getCredentialStatuses,
+  setCredential
+} from './secrets-store'
+import {
+  confirmProviderPrivacy,
+  deleteModelProfile,
+  deleteProviderConnection,
+  getModelProfile,
+  getProviderConfig,
+  getProviderSnapshot,
+  saveModelProfile,
+  saveProviderConnection
+} from './provider-config'
+import { normalizeProviderError, streamProviderChat, testProviderConnection } from './provider-router'
 import {
   clearListenerErrorHandlers,
   onListenerError,
@@ -84,14 +97,79 @@ export function chatClearApiKey() {
 }
 
 export async function chatTestApiKey(apiKey?: string) {
-  const key =
-    apiKey != null && apiKey.trim()
-      ? validateApiKeyFormat(apiKey)
-      : getApiKey()
-  if (!key) {
-    return { ok: false, message: '尚未配置 API Key' }
+  const snapshot = getProviderSnapshot('deepseek-default')
+  if (!snapshot) return { ok: false, message: 'DeepSeek 模型配置不存在' }
+  return testProviderConnection({
+    snapshot,
+    apiKey:
+      apiKey != null && apiKey.trim()
+        ? validateApiKeyFormat(apiKey)
+        : undefined
+  })
+}
+
+export function chatGetProviderConfig() {
+  return getProviderConfig()
+}
+
+export function chatSaveProviderConnection(
+  ...args: Parameters<typeof saveProviderConnection>
+) {
+  return saveProviderConnection(...args)
+}
+
+export function chatDeleteProviderConnection(connectionId: string) {
+  return { ok: deleteProviderConnection(connectionId) }
+}
+
+export function chatSaveModelProfile(
+  ...args: Parameters<typeof saveModelProfile>
+) {
+  return saveModelProfile(...args)
+}
+
+export function chatDeleteModelProfile(modelProfileId: string) {
+  return { ok: deleteModelProfile(modelProfileId) }
+}
+
+export function chatGetCredentialStatuses() {
+  const config = getProviderConfig()
+  return getCredentialStatuses(
+    config.connections.map((connection) => connection.credentialId)
+  )
+}
+
+export function chatSetCredential(credentialId: string, apiKey: string) {
+  return setCredential(credentialId, apiKey)
+}
+
+export function chatClearCredential(credentialId: string) {
+  return clearCredential(credentialId)
+}
+
+export async function chatTestCredential(
+  credentialId: string,
+  modelProfileId?: string
+) {
+  const providerConfig = getProviderConfig()
+  const selectedProfile =
+    modelProfileId ??
+    providerConfig.models.find((model) => {
+      const connection = providerConfig.connections.find(
+        (item) => item.id === model.connectionId
+      )
+      return connection?.credentialId === credentialId
+    })?.id ??
+    'deepseek-default'
+  const snapshot = getProviderSnapshot(selectedProfile)
+  if (!snapshot || snapshot.credentialId !== credentialId) {
+    return { ok: false, message: '凭据与模型配置不匹配' }
   }
-  return testApiKeyConnection(key)
+  return testProviderConnection({ snapshot })
+}
+
+export function chatConfirmProviderPrivacy(connectionId: string) {
+  return confirmProviderPrivacy(connectionId)
 }
 
 export function chatGetPersonaProfile(petId: PetId) {
@@ -113,9 +191,15 @@ export function chatListConversations(
 export function chatCreateConversation(
   petId: PetId,
   title?: string,
-  responseLanguage: ChatLanguage = DEFAULT_CHAT_LANGUAGE
+  responseLanguage: ChatLanguage = DEFAULT_CHAT_LANGUAGE,
+  modelProfileId: string | null = null
 ) {
-  return createConversation(petId, title, normalizeChatLanguage(responseLanguage))
+  return createConversation(
+    petId,
+    title,
+    normalizeChatLanguage(responseLanguage),
+    modelProfileId
+  )
 }
 
 export function chatGetConversationResponseLanguage(conversationId: string) {
@@ -130,6 +214,20 @@ export function chatUpdateConversationResponseLanguage(
     conversationId,
     normalizeChatLanguage(responseLanguage)
   )
+}
+
+export function chatGetConversationModelProfile(conversationId: string) {
+  return getConversationModelProfile(conversationId)
+}
+
+export function chatUpdateConversationModelProfile(
+  conversationId: string,
+  modelProfileId: string | null
+) {
+  if (modelProfileId != null && !getModelProfile(modelProfileId)) {
+    throw new Error('模型配置不存在')
+  }
+  return updateConversationModelProfile(conversationId, modelProfileId)
 }
 
 export function chatRenameConversation(
@@ -191,20 +289,51 @@ export async function sendChatMessage(
     return { ok: false, error: '正在生成中，请先停止', code: 'unknown' }
   }
 
-  let apiKey: string | null
+  const snapshot = getProviderSnapshot(conversation.modelProfileId)
+  if (!snapshot) {
+    return {
+      ok: false,
+      error: '没有可用的模型配置，请先在设置中配置供应商和模型',
+      code: 'missing_credential'
+    }
+  }
+  const providerConfig = getProviderConfig()
+  const model = providerConfig.models.find(
+    (item) => item.id === snapshot.modelProfileId
+  )
+  const connection = providerConfig.connections.find(
+    (item) => item.id === snapshot.providerConnectionId
+  )
+  if (!model || !connection || !model.enabled || !connection.enabled) {
+    return {
+      ok: false,
+      error: '当前模型已停用，请在设置中选择可用模型',
+      code: 'model_not_supported'
+    }
+  }
+  if (!connection.privacyConfirmed) {
+    return {
+      ok: false,
+      error: `请先确认消息将发送到${connection.displayName}`,
+      code: 'provider_unavailable'
+    }
+  }
   try {
-    apiKey = getApiKey()
+    const credential = getCredential(snapshot.credentialId)
+    if (!credential) {
+      return {
+        ok: false,
+        error: `请先在设置中配置${snapshot.providerName} API Key`,
+        code:
+          snapshot.credentialId === 'deepseek-default'
+            ? 'missing_api_key'
+            : 'missing_credential'
+      }
+    }
   } catch {
     return {
       ok: false,
       error: '系统加密不可用，无法读取 API Key',
-      code: 'missing_api_key'
-    }
-  }
-  if (!apiKey) {
-    return {
-      ok: false,
-      error: '请先在设置中配置 DeepSeek API Key',
       code: 'missing_api_key'
     }
   }
@@ -213,7 +342,12 @@ export async function sendChatMessage(
     conversationId: conversation.id,
     role: 'user',
     content,
-    status: 'complete'
+    status: 'complete',
+    modelProfileId: snapshot.modelProfileId,
+    providerConnectionId: snapshot.providerConnectionId,
+    providerName: snapshot.providerName,
+    modelId: snapshot.modelId,
+    modelName: snapshot.modelName
   })
   const assistantMessageId = randomUUID()
   insertMessage({
@@ -221,7 +355,12 @@ export async function sendChatMessage(
     conversationId: conversation.id,
     role: 'assistant',
     content: '',
-    status: 'streaming'
+    status: 'streaming',
+    modelProfileId: snapshot.modelProfileId,
+    providerConnectionId: snapshot.providerConnectionId,
+    providerName: snapshot.providerName,
+    modelId: snapshot.modelId,
+    modelName: snapshot.modelName
   })
 
   console.log(`[chat] 阶段: 开始生成 — assistant 行已前置落库 (${assistantMessageId.slice(0, 8)}…)，进入流式输出`)
@@ -244,7 +383,7 @@ export async function sendChatMessage(
     responseLanguage
   )
   const history = getRecentContextMessages(conversation.id, 20)
-  const messages: DeepSeekChatMessage[] = [
+  const messages: ProviderChatMessage[] = [
     { role: 'system', content: systemPrompt },
     ...history
       .filter((m) => m.id !== assistantMessageId)
@@ -278,8 +417,8 @@ export async function sendChatMessage(
     }
   }
   try {
-    assembled = await streamChatCompletion({
-      apiKey,
+    assembled = await streamProviderChat({
+      snapshot,
       messages,
       signal: controller.signal,
       onDelta: (delta) => {
@@ -351,13 +490,7 @@ export async function sendChatMessage(
 }
 
 function mapError(error: unknown): { code: ChatErrorCode; message: string } {
-  if (error instanceof DeepSeekApiError) {
-    return { code: error.code, message: error.message }
-  }
-  if (error instanceof Error && error.name === 'AbortError') {
-    return { code: 'aborted', message: '已停止生成' }
-  }
-  return { code: 'unknown', message: '生成失败，请稍后重试' }
+  return normalizeProviderError(error)
 }
 
 export function disposeChatService(): void {

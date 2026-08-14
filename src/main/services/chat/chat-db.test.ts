@@ -104,7 +104,8 @@ describe('chat-db', () => {
     const migrated = listConversations('hutao')
     expect(migrated[0]).toMatchObject({
       id: 'old-conversation',
-      responseLanguage: 'zh-CN'
+      responseLanguage: 'zh-CN',
+      modelProfileId: null
     })
     expect(getConversationMessages('old-conversation')).toHaveLength(1)
   })
@@ -182,6 +183,28 @@ describe('chat-db', () => {
       status: 'complete'
     })
     expect(updated).toMatchObject({ content: '完整回复', status: 'complete' })
+  })
+
+  it('should persist provider and model snapshots without storing credentials', () => {
+    const conversation = createConversation('hutao', undefined, 'zh-CN', 'deepseek-default')
+    const message = insertMessage({
+      conversationId: conversation.id,
+      role: 'assistant',
+      content: '回复',
+      modelProfileId: 'deepseek-default',
+      providerConnectionId: 'deepseek-default',
+      providerName: 'DeepSeek',
+      modelId: 'deepseek-v4-flash',
+      modelName: 'DeepSeek Flash'
+    })
+    expect(message).toMatchObject({
+      modelProfileId: 'deepseek-default',
+      providerConnectionId: 'deepseek-default',
+      providerName: 'DeepSeek',
+      modelId: 'deepseek-v4-flash',
+      modelName: 'DeepSeek Flash'
+    })
+    expect(JSON.stringify(message)).not.toContain('sk-')
   })
 
   it('should filter context messages to complete user/assistant rows', () => {

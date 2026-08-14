@@ -1,15 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { closeChatDb, getChatDb } from './chat-db'
+import { rmSync } from 'node:fs'
+import { join } from 'node:path'
+import { app } from 'electron'
+import { closeChatDb, getChatDb, getConversationMessages } from './chat-db'
 import {
   chatCreateConversation,
   chatGetPersonaProfile,
   chatUpdateConversationResponseLanguage,
+  chatUpdateConversationModelProfile,
+  disposeChatService,
   onBusinessEvent,
   onChatStream,
   sendChatMessage
 } from './chat-service'
 import { DeepSeekApiError, streamChatCompletion } from './deepseek-client'
 import { clearApiKey, setApiKey } from './secrets-store'
+import {
+  confirmProviderPrivacy,
+  saveModelProfile,
+  saveProviderConnection
+} from './provider-config'
+import { setCredential } from './secrets-store'
 
 vi.mock('./deepseek-client', () => {
   class DeepSeekApiError extends Error {
@@ -38,13 +49,24 @@ describe('chat-service', () => {
   beforeEach(() => {
     closeChatDb()
     clearApiKey()
+    rmSync(join(app.getPath('userData'), 'provider-config.json'), { force: true })
+    rmSync(join(app.getPath('userData'), 'credentials'), {
+      recursive: true,
+      force: true
+    })
     vi.mocked(streamChatCompletion).mockReset()
     conversationId = chatCreateConversation('hutao').id
   })
 
   afterEach(() => {
+    disposeChatService()
     closeChatDb()
     clearApiKey()
+    rmSync(join(app.getPath('userData'), 'provider-config.json'), { force: true })
+    rmSync(join(app.getPath('userData'), 'credentials'), {
+      recursive: true,
+      force: true
+    })
     vi.restoreAllMocks()
   })
 
@@ -196,6 +218,48 @@ describe('chat-service', () => {
     })
     expect(result).toMatchObject({ ok: true })
     expect(received).toContain('done')
+  })
+
+  it('should route subsequent messages to a newly selected model and persist snapshots', async () => {
+    saveProviderConnection({
+      id: 'company-b',
+      providerType: 'openai-compatible',
+      displayName: '公司 B',
+      baseUrl: 'https://company-b.example.com',
+      credentialId: 'company-b-key'
+    })
+    saveModelProfile({
+      id: 'company-b-model',
+      connectionId: 'company-b',
+      modelId: 'company-b-chat',
+      displayName: '公司 B 模型'
+    })
+    setCredential('company-b-key', 'sk-company-b')
+    confirmProviderPrivacy('company-b')
+    setApiKey('sk-default-key')
+    const models: string[] = []
+    vi.mocked(streamChatCompletion).mockImplementation(
+      async ({ model, onDelta }) => {
+        models.push(model ?? 'missing')
+        onDelta?.('答复')
+        return '答复'
+      }
+    )
+
+    await expect(
+      sendChatMessage({ conversationId, content: '第一条' })
+    ).resolves.toMatchObject({ ok: true })
+    chatUpdateConversationModelProfile(conversationId, 'company-b-model')
+    await expect(
+      sendChatMessage({ conversationId, content: '第二条' })
+    ).resolves.toMatchObject({ ok: true })
+
+    expect(models).toEqual(['deepseek-v4-flash', 'company-b-chat'])
+    const messages = getConversationMessages(conversationId)
+    expect(messages.filter((message) => message.role === 'assistant').map((message) => message.modelId)).toEqual([
+      'deepseek-v4-flash',
+      'company-b-chat'
+    ])
   })
 
   it('should expose the persona profile per pet', () => {

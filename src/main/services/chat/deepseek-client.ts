@@ -26,6 +26,8 @@ export interface DeepSeekChatMessage {
 export interface DeepSeekStreamOptions {
   apiKey: string
   messages: DeepSeekChatMessage[]
+  baseUrl?: string
+  model?: string
   signal?: AbortSignal
   onDelta?: (delta: string) => void
 }
@@ -43,10 +45,11 @@ export class DeepSeekApiError extends Error {
 }
 
 export function buildChatCompletionBody(
-  messages: DeepSeekChatMessage[]
+  messages: DeepSeekChatMessage[],
+  model = DEEPSEEK_MODEL
 ): Record<string, unknown> {
   return {
-    model: DEEPSEEK_MODEL,
+    model,
     messages,
     stream: true,
     max_tokens: 1024,
@@ -55,7 +58,11 @@ export function buildChatCompletionBody(
   }
 }
 
-function mapHttpError(status: number, bodyText: string): DeepSeekApiError {
+function mapHttpError(
+  status: number,
+  bodyText: string,
+  providerName = 'DeepSeek'
+): DeepSeekApiError {
   if (status === 401 || status === 403) {
     return new DeepSeekApiError(
       'invalid_api_key',
@@ -86,7 +93,7 @@ function mapHttpError(status: number, bodyText: string): DeepSeekApiError {
   }
   return new DeepSeekApiError(
     'unknown',
-    `DeepSeek 请求失败（${status}）`,
+    `${providerName} 请求失败（${status}）`,
     status
   )
 }
@@ -94,7 +101,8 @@ function mapHttpError(status: number, bodyText: string): DeepSeekApiError {
 export async function streamChatCompletion(
   options: DeepSeekStreamOptions
 ): Promise<string> {
-  const body = buildChatCompletionBody(options.messages)
+  const baseUrl = (options.baseUrl ?? DEEPSEEK_BASE_URL).replace(/\/$/, '')
+  const body = buildChatCompletionBody(options.messages, options.model)
   const idleController = new AbortController()
   let idleTimer = setTimeout(
     () => idleController.abort(),
@@ -104,7 +112,7 @@ export async function streamChatCompletion(
 
   let response: Response
   try {
-    response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -164,10 +172,12 @@ export async function streamChatCompletion(
 
 /** 用极短非流式请求验证 Key（仅主进程）。 */
 export async function testApiKeyConnection(
-  apiKey: string
+  apiKey: string,
+  options?: { baseUrl?: string; model?: string; providerName?: string }
 ): Promise<{ ok: boolean; message: string }> {
+  const baseUrl = (options?.baseUrl ?? DEEPSEEK_BASE_URL).replace(/\/$/, '')
   try {
-    const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -175,7 +185,7 @@ export async function testApiKeyConnection(
       },
       signal: mergeSignals(undefined, AbortSignal.timeout(TEST_TIMEOUT_MS)),
       body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
+        model: options?.model ?? DEEPSEEK_MODEL,
         messages: [{ role: 'user', content: 'ping' }],
         stream: false,
         thinking: { type: 'disabled' },
@@ -187,7 +197,8 @@ export async function testApiKeyConnection(
     }
     const err = mapHttpError(
       response.status,
-      await response.text().catch(() => '')
+      await response.text().catch(() => ''),
+      options?.providerName
     )
     return { ok: false, message: err.message }
   } catch (error) {

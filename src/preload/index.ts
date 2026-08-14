@@ -3,6 +3,9 @@ import type {
   ChatStreamEvent,
   ChatLanguage,
   DesktopPetApi,
+  ModelProfileInput,
+  ProviderConnectionInput,
+  SetCredentialInput,
   OpenChatOptions,
   PetBusinessEvent,
   PetConfig,
@@ -33,6 +36,8 @@ const api: DesktopPetApi = {
     ipcRenderer.invoke('get-default-response-language'),
   setDefaultResponseLanguage: (language: ChatLanguage) =>
     ipcRenderer.invoke('set-default-response-language', language),
+  setDefaultModelProfile: (modelProfileId: string | null) =>
+    ipcRenderer.invoke('set-default-model-profile', modelProfileId),
   listPets: () => ipcRenderer.invoke('list-pets'),
   getPet: (petId: PetId) => ipcRenderer.invoke('get-pet', petId),
   setAlwaysOnTop: (value: boolean) =>
@@ -53,6 +58,24 @@ const api: DesktopPetApi = {
   setApiKey: (apiKey: string) => ipcRenderer.invoke('set-api-key', apiKey),
   clearApiKey: () => ipcRenderer.invoke('clear-api-key'),
   testApiKey: (apiKey?: string) => ipcRenderer.invoke('test-api-key', apiKey),
+  getProviderConfig: () => ipcRenderer.invoke('get-provider-config'),
+  saveProviderConnection: (input: ProviderConnectionInput) =>
+    ipcRenderer.invoke('save-provider-connection', input),
+  deleteProviderConnection: (connectionId: string) =>
+    ipcRenderer.invoke('delete-provider-connection', connectionId),
+  saveModelProfile: (input: ModelProfileInput) =>
+    ipcRenderer.invoke('save-model-profile', input),
+  deleteModelProfile: (modelProfileId: string) =>
+    ipcRenderer.invoke('delete-model-profile', modelProfileId),
+  getCredentialStatuses: () => ipcRenderer.invoke('get-credential-statuses'),
+  setCredential: (input: SetCredentialInput) =>
+    ipcRenderer.invoke('set-credential', input),
+  clearCredential: (credentialId: string) =>
+    ipcRenderer.invoke('clear-credential', credentialId),
+  testCredential: (credentialId: string, modelProfileId?: string) =>
+    ipcRenderer.invoke('test-credential', credentialId, modelProfileId),
+  confirmProviderPrivacy: (connectionId: string) =>
+    ipcRenderer.invoke('confirm-provider-privacy', connectionId),
 
   getPersonaProfile: (petId: PetId) =>
     ipcRenderer.invoke('get-persona-profile', petId),
@@ -73,6 +96,17 @@ const api: DesktopPetApi = {
       'set-conversation-response-language',
       conversationId,
       language
+    ),
+  getConversationModelProfile: (conversationId: string) =>
+    ipcRenderer.invoke('get-conversation-model-profile', conversationId),
+  setConversationModelProfile: (
+    conversationId: string,
+    modelProfileId: string | null
+  ) =>
+    ipcRenderer.invoke(
+      'set-conversation-model-profile',
+      conversationId,
+      modelProfileId
     ),
   renameConversation: (conversationId: string, title: string) =>
     ipcRenderer.invoke('rename-conversation', conversationId, title),

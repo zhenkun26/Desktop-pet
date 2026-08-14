@@ -7,10 +7,14 @@ import type {
   ChatMessageRecord,
   ChatStreamEvent,
   ConversationRecord,
+  CredentialStatus,
+  ModelProfile,
   PetConfig,
   PetDescriptor,
   PetId,
   PersonaProfile,
+  ProviderConfig,
+  ProviderConnection,
   TimerStatus
 } from '../shared/types'
 import { CHAT_LANGUAGE_LABELS, CHAT_LANGUAGES } from '../shared/types'
@@ -50,6 +54,8 @@ const state = {
   config: null as PetConfig | null,
   persona: null as PersonaProfile | null,
   apiKeyStatus: null as ApiKeyStatus | null,
+  providerConfig: null as ProviderConfig | null,
+  credentialStatuses: [] as CredentialStatus[],
   timerStatus: null as TimerStatus | null,
   currentPet: null as PetDescriptor | null
 }
@@ -137,11 +143,127 @@ async function refreshConversations(): Promise<void> {
   )
   renderConversationList()
   renderLanguageSettings()
+  renderModelSelector()
 }
 
 async function loadLanguageSettings(): Promise<void> {
   state.config = await window.desktopPet.getConfig()
   renderLanguageSettings()
+}
+
+function credentialStatusFor(connection: ProviderConnection): CredentialStatus | null {
+  return (
+    state.credentialStatuses.find((item) => item.id === connection.credentialId) ??
+    null
+  )
+}
+
+function availableModels(): ModelProfile[] {
+  const config = state.providerConfig
+  if (!config) return []
+  return config.models.filter((model) => {
+    const connection = config.connections.find(
+      (item) => item.id === model.connectionId
+    )
+    const status = connection ? credentialStatusFor(connection) : null
+    return Boolean(connection?.enabled && model.enabled && status?.configured)
+  })
+}
+
+function modelLabel(model: ModelProfile): string {
+  const connection = state.providerConfig?.connections.find(
+    (item) => item.id === model.connectionId
+  )
+  return connection ? `${connection.displayName} · ${model.displayName}` : model.displayName
+}
+
+function renderModelSelector(): void {
+  const select = $('model-select') as HTMLSelectElement | null
+  const status = $('model-picker-status')
+  if (!select || !status) return
+  const models = availableModels()
+  const current = state.conversations.find(
+    (conversation) => conversation.id === state.currentConversationId
+  )
+  const selected = current?.modelProfileId ?? state.config?.defaultModelProfileId ?? ''
+  select.innerHTML = models.length
+    ? models
+        .map(
+          (model) =>
+            `<option value="${escapeHtml(model.id)}">${escapeHtml(modelLabel(model))}</option>`
+        )
+        .join('')
+    : '<option value="">请先在设置中配置可用模型</option>'
+  select.value = models.some((model) => model.id === selected)
+    ? selected
+    : models[0]?.id ?? ''
+  select.disabled = models.length === 0
+  status.textContent = models.length ? '' : '未配置'
+}
+
+async function loadProviderConfig(): Promise<void> {
+  try {
+    state.providerConfig = await window.desktopPet.getProviderConfig()
+    state.credentialStatuses = await window.desktopPet.getCredentialStatuses()
+    renderProviderConfig()
+    renderModelSelector()
+  } catch (error) {
+    console.error('加载供应商配置失败:', error)
+  }
+}
+
+function renderProviderConfig(): void {
+  const list = $('provider-config-list')
+  const defaultSelect = $('default-model-select') as HTMLSelectElement | null
+  const connectionSelect = $('model-connection-select') as HTMLSelectElement | null
+  const config = state.providerConfig
+  if (!config || !defaultSelect || !connectionSelect) return
+
+  list.innerHTML = config.connections
+    .map((connection) => {
+      const credential = credentialStatusFor(connection)
+      const models = config.models.filter(
+        (model) => model.connectionId === connection.id
+      )
+      return `
+        <div class="provider-card" data-connection-id="${escapeHtml(connection.id)}">
+          <div class="provider-card-header">
+            <span class="provider-card-title">${escapeHtml(connection.displayName)}</span>
+            <button class="provider-mini-btn" data-action="delete-connection" data-connection-id="${escapeHtml(connection.id)}" ${connection.id === 'deepseek-default' ? 'disabled' : ''}>删除连接</button>
+          </div>
+          <div class="provider-card-meta">${escapeHtml(connection.baseUrl)} · ${connection.enabled ? '已启用' : '已停用'}</div>
+          <div class="provider-card-meta">API Key：${escapeHtml(credential?.masked ?? '未配置')} · ${connection.privacyConfirmed ? '已确认数据路由' : '待确认数据路由'}</div>
+          <div class="provider-credential-row">
+            <input type="password" placeholder="输入新的 API Key" data-credential-input="${escapeHtml(connection.credentialId)}" />
+            <button class="provider-mini-btn" data-action="save-credential" data-credential-id="${escapeHtml(connection.credentialId)}">保存 Key</button>
+            <button class="provider-mini-btn" data-action="test-credential" data-credential-id="${escapeHtml(connection.credentialId)}">测试</button>
+            <button class="provider-mini-btn" data-action="clear-credential" data-credential-id="${escapeHtml(connection.credentialId)}">清除</button>
+          </div>
+          ${connection.privacyConfirmed ? '' : `<button class="provider-mini-btn" data-action="confirm-privacy" data-connection-id="${escapeHtml(connection.id)}">确认消息发送到此供应商</button>`}
+          <div class="provider-card-models">
+            ${models.length ? models.map((model) => `<div class="provider-model-row"><span>${escapeHtml(model.displayName)} <small>(${escapeHtml(model.modelId)})</small></span><button class="provider-mini-btn" data-action="delete-model" data-model-id="${escapeHtml(model.id)}" ${model.id === 'deepseek-default' ? 'disabled' : ''}>删除</button></div>`).join('') : '<div class="provider-card-meta">尚未配置模型</div>'}
+          </div>
+        </div>`
+    })
+    .join('')
+
+  const models = config.models
+  defaultSelect.innerHTML = models.length
+    ? models
+        .map(
+          (model) =>
+            `<option value="${escapeHtml(model.id)}">${escapeHtml(modelLabel(model))}</option>`
+        )
+        .join('')
+    : '<option value="">暂无模型</option>'
+  defaultSelect.value = state.config?.defaultModelProfileId ?? 'deepseek-default'
+
+  connectionSelect.innerHTML = config.connections
+    .map(
+      (connection) =>
+        `<option value="${escapeHtml(connection.id)}">${escapeHtml(connection.displayName)}</option>`
+    )
+    .join('')
 }
 
 function renderLanguageSettings(): void {
@@ -272,6 +394,7 @@ async function createNewConversation(): Promise<void> {
   state.currentConversationId = conv.id
   state.messages = []
   await refreshConversations()
+  renderModelSelector()
   renderMessages()
 }
 
@@ -289,6 +412,7 @@ async function selectConversation(convId: string): Promise<void> {
   state.currentConversationId = convId
   state.messages = await window.desktopPet.getConversationMessages(convId)
   renderConversationList()
+  renderModelSelector()
   renderMessages()
   // 如果该会话仍在生成中，恢复流式气泡
   if (state.streaming && state.streamingConvId === convId) {
@@ -352,6 +476,12 @@ function renderMessage(msg: ChatMessageRecord): HTMLElement | null {
   if (msg.role === 'assistant') {
     const rawHtml = marked.parse(msg.content || '…') as string
     bubble.innerHTML = DOMPurify.sanitize(rawHtml)
+    if (msg.providerName && msg.modelName) {
+      const badge = document.createElement('div')
+      badge.className = 'model-snapshot'
+      badge.textContent = `${msg.providerName} · ${msg.modelName}`
+      bubble.appendChild(badge)
+    }
     const avatar = document.createElement('img')
     avatar.className = 'msg-avatar'
     avatar.src = petAvatarUrl()
@@ -492,6 +622,8 @@ async function sendMessage(): Promise<void> {
     if (!state.currentConversationId) return
   }
   const convId = state.currentConversationId
+  const selectedModelId = ($('model-select') as HTMLSelectElement).value
+  if (!selectedModelId || !(await ensureProviderPrivacy(selectedModelId))) return
 
   // 清空输入
   input.value = ''
@@ -829,6 +961,137 @@ async function testApiKey(): Promise<void> {
   }
 }
 
+async function saveProviderConnectionFromForm(): Promise<void> {
+  const btn = $('save-provider-btn') as HTMLButtonElement
+  btn.disabled = true
+  try {
+    await window.desktopPet.saveProviderConnection({
+      id: ($('provider-connection-id') as HTMLInputElement).value.trim() || undefined,
+      providerType: 'openai-compatible',
+      displayName: ($('provider-display-name') as HTMLInputElement).value,
+      baseUrl: ($('provider-base-url') as HTMLInputElement).value,
+      allowLocalhost: ($('provider-allow-localhost') as HTMLInputElement).checked,
+      credentialId:
+        ($('provider-credential-id') as HTMLInputElement).value.trim() || undefined
+    })
+    ;($('provider-test-result') as HTMLElement).className = 'test-result ok'
+    $('provider-test-result').textContent = '供应商连接已保存'
+    await loadProviderConfig()
+  } catch (error) {
+    ;($('provider-test-result') as HTMLElement).className = 'test-result fail'
+    $('provider-test-result').textContent = `保存失败：${(error as Error).message}`
+  } finally {
+    btn.disabled = false
+  }
+}
+
+async function saveModelProfileFromForm(): Promise<void> {
+  const btn = $('save-model-btn') as HTMLButtonElement
+  btn.disabled = true
+  try {
+    await window.desktopPet.saveModelProfile({
+      connectionId: ($('model-connection-select') as HTMLSelectElement).value,
+      modelId: ($('model-id-input') as HTMLInputElement).value,
+      displayName: ($('model-name-input') as HTMLInputElement).value
+    })
+    ;($('provider-test-result') as HTMLElement).className = 'test-result ok'
+    $('provider-test-result').textContent = '模型配置已保存'
+    await loadProviderConfig()
+  } catch (error) {
+    ;($('provider-test-result') as HTMLElement).className = 'test-result fail'
+    $('provider-test-result').textContent = `保存失败：${(error as Error).message}`
+  } finally {
+    btn.disabled = false
+  }
+}
+
+async function handleProviderConfigAction(event: Event): Promise<void> {
+  const target = event.target as HTMLElement
+  const action = target.dataset.action
+  if (!action) return
+  const connectionId = target.dataset.connectionId
+  const credentialId = target.dataset.credentialId
+  const modelId = target.dataset.modelId
+  try {
+    if (action === 'save-credential' && credentialId) {
+      const input = document.querySelector<HTMLInputElement>(
+        `[data-credential-input="${CSS.escape(credentialId)}"]`
+      )
+      const apiKey = input?.value.trim() ?? ''
+      if (!apiKey) return
+      await window.desktopPet.setCredential({ credentialId, apiKey })
+      if (input) input.value = ''
+    } else if (action === 'clear-credential' && credentialId) {
+      if (!window.confirm('确定清除该供应商的 API Key 吗？')) return
+      await window.desktopPet.clearCredential(credentialId)
+    } else if (action === 'test-credential' && credentialId) {
+      const result = await window.desktopPet.testCredential(credentialId)
+      const resultEl = $('provider-test-result')
+      resultEl.className = `test-result ${result.ok ? 'ok' : 'fail'}`
+      resultEl.textContent = result.message
+    } else if (action === 'confirm-privacy' && connectionId) {
+      await window.desktopPet.confirmProviderPrivacy(connectionId)
+    } else if (action === 'delete-model' && modelId) {
+      if (!window.confirm('删除模型配置后，新消息将无法选择它，继续吗？')) return
+      await window.desktopPet.deleteModelProfile(modelId)
+    } else if (action === 'delete-connection' && connectionId) {
+      if (!window.confirm('删除连接及其模型配置，继续吗？')) return
+      await window.desktopPet.deleteProviderConnection(connectionId)
+    }
+    await loadProviderConfig()
+  } catch (error) {
+    const resultEl = $('provider-test-result')
+    resultEl.className = 'test-result fail'
+    resultEl.textContent = `操作失败：${(error as Error).message}`
+  }
+}
+
+async function saveDefaultModel(): Promise<void> {
+  const modelId = ($('default-model-select') as HTMLSelectElement).value || null
+  try {
+    state.config = await window.desktopPet.setDefaultModelProfile(modelId)
+    renderModelSelector()
+  } catch (error) {
+    console.error('保存默认模型失败:', error)
+    await loadProviderConfig()
+  }
+}
+
+async function handleModelSelection(): Promise<void> {
+  const modelProfileId = ($('model-select') as HTMLSelectElement).value || null
+  if (!modelProfileId) return
+  if (state.currentConversationId) {
+    const updated = await window.desktopPet.setConversationModelProfile(
+      state.currentConversationId,
+      modelProfileId
+    )
+    if (updated) {
+      state.conversations = state.conversations.map((conversation) =>
+        conversation.id === updated.id ? updated : conversation
+      )
+      renderConversationList()
+    }
+  } else {
+    state.config = await window.desktopPet.setDefaultModelProfile(modelProfileId)
+  }
+  renderModelSelector()
+}
+
+async function ensureProviderPrivacy(modelProfileId: string): Promise<boolean> {
+  const model = state.providerConfig?.models.find((item) => item.id === modelProfileId)
+  const connection = state.providerConfig?.connections.find(
+    (item) => item.id === model?.connectionId
+  )
+  if (!connection || connection.privacyConfirmed) return true
+  const accepted = window.confirm(
+    `发送消息会将内容发送到“${connection.displayName}”。是否继续？`
+  )
+  if (!accepted) return false
+  await window.desktopPet.confirmProviderPrivacy(connection.id)
+  await loadProviderConfig()
+  return true
+}
+
 // ===== 对话语言设置 =====
 async function saveDefaultResponseLanguage(): Promise<void> {
   const select = $('default-language-select') as HTMLSelectElement
@@ -935,6 +1198,21 @@ async function bootstrap(): Promise<void> {
   $('save-key-btn').addEventListener('click', () => void saveApiKey())
   $('delete-key-btn').addEventListener('click', () => void deleteApiKey())
   $('test-key-btn').addEventListener('click', () => void testApiKey())
+  $('provider-config-list').addEventListener('click', (event) => {
+    void handleProviderConfigAction(event)
+  })
+  $('save-provider-btn').addEventListener('click', () => {
+    void saveProviderConnectionFromForm()
+  })
+  $('save-model-btn').addEventListener('click', () => {
+    void saveModelProfileFromForm()
+  })
+  $('default-model-select').addEventListener('change', () => {
+    void saveDefaultModel()
+  })
+  $('model-select').addEventListener('change', () => {
+    void handleModelSelection()
+  })
   $('default-language-select').addEventListener('change', () => {
     void saveDefaultResponseLanguage()
   })
@@ -966,7 +1244,8 @@ async function bootstrap(): Promise<void> {
     loadLanguageSettings(),
     refreshConversations(),
     loadPersona(),
-    loadApiKeyStatus()
+    loadApiKeyStatus(),
+    loadProviderConfig()
   ])
   await loadTimerStatus()
 

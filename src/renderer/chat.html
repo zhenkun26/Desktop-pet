@@ -45,6 +45,13 @@
             <div id="stream-container"></div>
           </div>
           <div class="input-bar">
+            <div class="model-picker-row">
+              <label for="model-select">模型</label>
+              <select id="model-select" disabled>
+                <option>加载中…</option>
+              </select>
+              <span class="model-picker-status" id="model-picker-status"></span>
+            </div>
             <div class="input-hint">Enter 发送 · Shift+Enter 换行</div>
             <div class="input-row">
               <textarea
@@ -195,6 +202,53 @@
               <div class="subtitle" id="current-language-hint">
                 当前没有打开的会话，修改后将作为新会话默认语言。
               </div>
+            </div>
+            <div class="panel-card">
+              <h2>多供应商模型</h2>
+              <div class="subtitle">按公司配置连接、API Key 和模型；对话框只选择已启用模型</div>
+              <div class="status-box">
+                <span class="status-label">新会话默认模型：</span>
+                <select id="default-model-select"></select>
+              </div>
+              <div id="provider-config-list" class="provider-config-list"></div>
+              <div class="provider-editor">
+                <h3>供应商连接</h3>
+                <div class="form-group">
+                  <label>连接 ID（留空自动生成）</label>
+                  <input type="text" id="provider-connection-id" maxlength="80" placeholder="my-company" />
+                </div>
+                <div class="form-group">
+                  <label>供应商名称</label>
+                  <input type="text" id="provider-display-name" maxlength="80" placeholder="我的模型服务" />
+                </div>
+                <div class="form-group">
+                  <label>Base URL（默认仅 HTTPS）</label>
+                  <input type="url" id="provider-base-url" placeholder="https://api.example.com" />
+                </div>
+                <label class="checkbox-row"><input type="checkbox" id="provider-allow-localhost" /> 允许本机 localhost HTTP 端点</label>
+                <div class="form-group">
+                  <label>凭据 ID（留空使用连接 ID）</label>
+                  <input type="text" id="provider-credential-id" maxlength="80" placeholder="my-company-key" />
+                </div>
+                <button class="btn-primary" id="save-provider-btn">保存供应商连接</button>
+              </div>
+              <div class="provider-editor">
+                <h3>模型配置</h3>
+                <div class="form-group">
+                  <label>所属连接</label>
+                  <select id="model-connection-select"></select>
+                </div>
+                <div class="form-group">
+                  <label>模型 ID</label>
+                  <input type="text" id="model-id-input" maxlength="120" placeholder="deepseek-chat" />
+                </div>
+                <div class="form-group">
+                  <label>显示名称</label>
+                  <input type="text" id="model-name-input" maxlength="120" placeholder="DeepSeek Chat" />
+                </div>
+                <button class="btn-primary" id="save-model-btn">保存模型配置</button>
+              </div>
+              <div id="provider-test-result" class="test-result"></div>
             </div>
             <div class="panel-card">
               <h2>API 设置</h2>

@@ -26,6 +26,13 @@ export function loadConfig(): PetConfig {
       ...DEFAULT_CONFIG,
       ...raw,
       petId,
+      defaultModelProfileId:
+        typeof raw.defaultModelProfileId === 'string' &&
+        raw.defaultModelProfileId.trim()
+          ? raw.defaultModelProfileId.trim()
+          : raw.defaultModelProfileId === null
+            ? null
+            : DEFAULT_CONFIG.defaultModelProfileId,
       defaultResponseLanguage: normalizeChatLanguage(
         raw.defaultResponseLanguage
       )

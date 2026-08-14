@@ -19,10 +19,22 @@ import {
   chatCreateConversation,
   chatDeleteConversation,
   chatGetApiKeyStatus,
+  chatGetCredentialStatuses,
+  chatGetConversationModelProfile,
   chatGetConversationResponseLanguage,
   chatGetMessages,
+  chatGetProviderConfig,
   chatGetPersonaProfile,
   chatListConversations,
+  chatSaveModelProfile,
+  chatSaveProviderConnection,
+  chatDeleteModelProfile,
+  chatDeleteProviderConnection,
+  chatSetCredential,
+  chatClearCredential,
+  chatTestCredential,
+  chatConfirmProviderPrivacy,
+  chatUpdateConversationModelProfile,
   chatRenameConversation,
   chatSetApiKey,
   chatTestApiKey,
@@ -42,8 +54,11 @@ import {
   DEFAULT_CONFIG,
   normalizeChatLanguage,
   type OpenChatOptions,
+  type ModelProfileInput,
   type PetConfig,
   type PetId,
+  type ProviderConnectionInput,
+  type SetCredentialInput,
   type SendChatMessageInput,
   type TimerConfig,
   type UpdatePersonaInput
@@ -79,6 +94,22 @@ function persist(): void {
 
 function setDefaultResponseLanguage(value: unknown): PetConfig {
   config.defaultResponseLanguage = normalizeChatLanguage(value)
+  persist()
+  return config
+}
+
+function setDefaultModelProfile(value: unknown): PetConfig {
+  if (value == null || value === '') {
+    config.defaultModelProfileId = null
+    persist()
+    return config
+  }
+  if (typeof value !== 'string') throw new Error('模型配置 ID 必须是字符串')
+  const providerConfig = chatGetProviderConfig()
+  if (!providerConfig.models.some((model) => model.id === value)) {
+    throw new Error('模型配置不存在')
+  }
+  config.defaultModelProfileId = value
   persist()
   return config
 }
@@ -313,6 +344,9 @@ function registerIpc(): void {
   ipcMain.handle('set-default-response-language', (_event, language: unknown) =>
     setDefaultResponseLanguage(language)
   )
+  ipcMain.handle('set-default-model-profile', (_event, modelProfileId: unknown) =>
+    setDefaultModelProfile(modelProfileId)
+  )
 
   ipcMain.handle('list-pets', () => listPets())
 
@@ -368,6 +402,48 @@ function registerIpc(): void {
     chatTestApiKey(apiKey)
   )
 
+  ipcMain.handle('get-provider-config', () => chatGetProviderConfig())
+  ipcMain.handle(
+    'save-provider-connection',
+    (_event, input: ProviderConnectionInput) => chatSaveProviderConnection(input)
+  )
+  ipcMain.handle('delete-provider-connection', (_event, connectionId: unknown) => {
+    if (typeof connectionId !== 'string') throw new Error('连接 ID 不合法')
+    return chatDeleteProviderConnection(connectionId)
+  })
+  ipcMain.handle('save-model-profile', (_event, input: ModelProfileInput) =>
+    chatSaveModelProfile(input)
+  )
+  ipcMain.handle('delete-model-profile', (_event, modelProfileId: unknown) => {
+    if (typeof modelProfileId !== 'string') throw new Error('模型配置 ID 不合法')
+    return chatDeleteModelProfile(modelProfileId)
+  })
+  ipcMain.handle('get-credential-statuses', () => chatGetCredentialStatuses())
+  ipcMain.handle('set-credential', (_event, input: SetCredentialInput) => {
+    if (!input || typeof input.credentialId !== 'string') {
+      throw new Error('凭据参数不合法')
+    }
+    return chatSetCredential(input.credentialId, input.apiKey)
+  })
+  ipcMain.handle('clear-credential', (_event, credentialId: unknown) => {
+    if (typeof credentialId !== 'string') throw new Error('凭据 ID 不合法')
+    return chatClearCredential(credentialId)
+  })
+  ipcMain.handle(
+    'test-credential',
+    (_event, credentialId: unknown, modelProfileId?: unknown) => {
+      if (typeof credentialId !== 'string') throw new Error('凭据 ID 不合法')
+      return chatTestCredential(
+        credentialId,
+        typeof modelProfileId === 'string' ? modelProfileId : undefined
+      )
+    }
+  )
+  ipcMain.handle('confirm-provider-privacy', (_event, connectionId: unknown) => {
+    if (typeof connectionId !== 'string') throw new Error('连接 ID 不合法')
+    return chatConfirmProviderPrivacy(connectionId)
+  })
+
   ipcMain.handle('get-persona-profile', (_event, petId: unknown) =>
     chatGetPersonaProfile(resolveRegisteredPetId(petId))
   )
@@ -388,7 +464,8 @@ function registerIpc(): void {
     chatCreateConversation(
       resolveRegisteredPetId(petId),
       title,
-      config.defaultResponseLanguage
+      config.defaultResponseLanguage,
+      config.defaultModelProfileId ?? null
     )
   )
   ipcMain.handle('get-conversation-response-language', (_event, conversationId: unknown) =>
@@ -401,6 +478,23 @@ function registerIpc(): void {
         resolveConversationId(conversationId),
         normalizeChatLanguage(language)
       )
+  )
+  ipcMain.handle(
+    'get-conversation-model-profile',
+    (_event, conversationId: unknown) =>
+      chatGetConversationModelProfile(resolveConversationId(conversationId))
+  )
+  ipcMain.handle(
+    'set-conversation-model-profile',
+    (_event, conversationId: unknown, modelProfileId: unknown) => {
+      if (modelProfileId !== null && typeof modelProfileId !== 'string') {
+        throw new Error('模型配置 ID 不合法')
+      }
+      return chatUpdateConversationModelProfile(
+        resolveConversationId(conversationId),
+        modelProfileId as string | null
+      )
+    }
   )
   ipcMain.handle('rename-conversation', (_event, conversationId: unknown, title: string) =>
     chatRenameConversation(resolveConversationId(conversationId), title)

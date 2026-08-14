@@ -6,7 +6,9 @@ import {
   clearApiKey,
   getApiKey,
   getApiKeyStatus,
-  setApiKey
+  setApiKey,
+  getCredential,
+  migrateLegacyCredential
 } from './secrets-store'
 
 function keyPath(): string {
@@ -54,5 +56,12 @@ describe('secrets-store', () => {
   it('should read a key stored as plain buffer through the mock', () => {
     writeFileSync(keyPath(), Buffer.from('enc:sk-plain-key'))
     expect(readFileSync(keyPath(), 'utf8')).toContain('sk-plain-key')
+  })
+
+  it('should migrate a legacy key without deleting the original file', () => {
+    writeFileSync(keyPath(), Buffer.from('enc:sk-legacy-key'))
+    expect(migrateLegacyCredential()).toBe(true)
+    expect(getCredential('deepseek-default')).toBe('sk-legacy-key')
+    expect(existsSync(keyPath())).toBe(true)
   })
 })
