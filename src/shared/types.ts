@@ -7,6 +7,26 @@ export const PET_LABELS: Record<PetId, string> = {
   hutao: '胡桃'
 }
 
+/** 会话回复语言；界面和主进程只允许使用这三个值。 */
+export type ChatLanguage = 'zh-CN' | 'en-US' | 'ja-JP'
+
+export const CHAT_LANGUAGES: ChatLanguage[] = ['zh-CN', 'en-US', 'ja-JP']
+
+export const CHAT_LANGUAGE_LABELS: Record<ChatLanguage, string> = {
+  'zh-CN': '中文',
+  'en-US': 'English',
+  'ja-JP': '日本語'
+}
+
+export const DEFAULT_CHAT_LANGUAGE: ChatLanguage = 'zh-CN'
+
+/** 将未知输入规范化为受支持的会话回复语言。 */
+export function normalizeChatLanguage(value: unknown): ChatLanguage {
+  return typeof value === 'string' && CHAT_LANGUAGES.includes(value as ChatLanguage)
+    ? (value as ChatLanguage)
+    : DEFAULT_CHAT_LANGUAGE
+}
+
 /** 宠物动画/业务状态 */
 export type PetVisualState = 'idle' | 'drag' | 'click' | 'busy'
 
@@ -17,6 +37,7 @@ export interface PetConfig {
   windowX: number | null
   windowY: number | null
   visible: boolean
+  defaultResponseLanguage: ChatLanguage
 }
 
 export const DEFAULT_CONFIG: PetConfig = {
@@ -24,7 +45,8 @@ export const DEFAULT_CONFIG: PetConfig = {
   alwaysOnTop: true,
   windowX: null,
   windowY: null,
-  visible: true
+  visible: true,
+  defaultResponseLanguage: DEFAULT_CHAT_LANGUAGE
 }
 
 /** 主进程 → 桌宠窗口的业务事件 */
@@ -71,6 +93,7 @@ export interface ConversationRecord {
   createdAt: number
   updatedAt: number
   lastMessagePreview: string | null
+  responseLanguage: ChatLanguage
 }
 
 export interface ChatMessageRecord {
@@ -210,6 +233,8 @@ export interface PomodoroDoneEvent {
 /** preload 暴露给渲染进程的 API */
 export interface DesktopPetApi {
   getConfig: () => Promise<PetConfig>
+  getDefaultResponseLanguage: () => Promise<ChatLanguage>
+  setDefaultResponseLanguage: (language: ChatLanguage) => Promise<PetConfig>
   listPets: () => Promise<PetDescriptor[]>
   getPet: (petId: PetId) => Promise<PetDescriptor>
   setAlwaysOnTop: (value: boolean) => Promise<PetConfig>
@@ -233,6 +258,13 @@ export interface DesktopPetApi {
     petId: PetId,
     title?: string
   ) => Promise<ConversationRecord>
+  getConversationResponseLanguage: (
+    conversationId: string
+  ) => Promise<ChatLanguage | null>
+  setConversationResponseLanguage: (
+    conversationId: string,
+    language: ChatLanguage
+  ) => Promise<ConversationRecord | null>
   renameConversation: (
     conversationId: string,
     title: string
