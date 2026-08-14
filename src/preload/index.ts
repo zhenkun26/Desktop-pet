@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type {
   ChatStreamEvent,
+  ChatLanguage,
   DesktopPetApi,
   OpenChatOptions,
   PetBusinessEvent,
@@ -28,6 +29,10 @@ function subscribe<T>(channel: string, cb: (payload: T) => void): () => void {
 
 const api: DesktopPetApi = {
   getConfig: () => ipcRenderer.invoke('get-config'),
+  getDefaultResponseLanguage: () =>
+    ipcRenderer.invoke('get-default-response-language'),
+  setDefaultResponseLanguage: (language: ChatLanguage) =>
+    ipcRenderer.invoke('set-default-response-language', language),
   listPets: () => ipcRenderer.invoke('list-pets'),
   getPet: (petId: PetId) => ipcRenderer.invoke('get-pet', petId),
   setAlwaysOnTop: (value: boolean) =>
@@ -58,6 +63,17 @@ const api: DesktopPetApi = {
     ipcRenderer.invoke('list-conversations', petId),
   createConversation: (petId: PetId, title?: string) =>
     ipcRenderer.invoke('create-conversation', petId, title),
+  getConversationResponseLanguage: (conversationId: string) =>
+    ipcRenderer.invoke('get-conversation-response-language', conversationId),
+  setConversationResponseLanguage: (
+    conversationId: string,
+    language: ChatLanguage
+  ) =>
+    ipcRenderer.invoke(
+      'set-conversation-response-language',
+      conversationId,
+      language
+    ),
   renameConversation: (conversationId: string, title: string) =>
     ipcRenderer.invoke('rename-conversation', conversationId, title),
   deleteConversation: (conversationId: string) =>

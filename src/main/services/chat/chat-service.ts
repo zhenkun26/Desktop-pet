@@ -1,21 +1,26 @@
 import { randomUUID } from 'crypto'
-import type {
-  ChatErrorCode,
-  ChatStreamEvent,
-  PetBusinessEvent,
-  PetId,
-  SendChatMessageInput
+import {
+  DEFAULT_CHAT_LANGUAGE,
+  normalizeChatLanguage,
+  type ChatErrorCode,
+  type ChatLanguage,
+  type ChatStreamEvent,
+  type PetBusinessEvent,
+  type PetId,
+  type SendChatMessageInput
 } from '../../../shared/types'
 import {
   createConversation,
   deleteConversation,
   getConversation,
+  getConversationResponseLanguage,
   getConversationMessages,
   getPersonaProfile,
   getRecentContextMessages,
   insertMessage,
   listConversations,
   renameConversation,
+  updateConversationResponseLanguage,
   updateMessage,
   updatePersonaProfile
 } from './chat-db'
@@ -106,9 +111,25 @@ export function chatListConversations(
 }
 
 export function chatCreateConversation(
-  ...args: Parameters<typeof createConversation>
+  petId: PetId,
+  title?: string,
+  responseLanguage: ChatLanguage = DEFAULT_CHAT_LANGUAGE
 ) {
-  return createConversation(...args)
+  return createConversation(petId, title, normalizeChatLanguage(responseLanguage))
+}
+
+export function chatGetConversationResponseLanguage(conversationId: string) {
+  return getConversationResponseLanguage(conversationId)
+}
+
+export function chatUpdateConversationResponseLanguage(
+  conversationId: string,
+  responseLanguage: ChatLanguage
+) {
+  return updateConversationResponseLanguage(
+    conversationId,
+    normalizeChatLanguage(responseLanguage)
+  )
 }
 
 export function chatRenameConversation(
@@ -216,7 +237,12 @@ export async function sendChatMessage(
   activeControllers.set(conversation.id, controller)
 
   const profile = getPersonaProfile(conversation.petId)
-  const systemPrompt = buildSystemPrompt(conversation.petId, profile)
+  const responseLanguage = normalizeChatLanguage(conversation.responseLanguage)
+  const systemPrompt = buildSystemPrompt(
+    conversation.petId,
+    profile,
+    responseLanguage
+  )
   const history = getRecentContextMessages(conversation.id, 20)
   const messages: DeepSeekChatMessage[] = [
     { role: 'system', content: systemPrompt },

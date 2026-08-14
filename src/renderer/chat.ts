@@ -3,15 +3,22 @@ import DOMPurify from 'dompurify'
 import hutaoAvatarUrl from './assets/hutao.png'
 import type {
   ApiKeyStatus,
+  ChatLanguage,
   ChatMessageRecord,
   ChatStreamEvent,
   ConversationRecord,
+  PetConfig,
   PetDescriptor,
   PetId,
   PersonaProfile,
   TimerStatus
 } from '../shared/types'
+import { CHAT_LANGUAGE_LABELS, CHAT_LANGUAGES } from '../shared/types'
 import { resolvePetAssetUrl } from './pet-assets'
+import {
+  updateCurrentLanguage,
+  updateDefaultLanguage
+} from './language-settings'
 
 marked.setOptions({ breaks: true, gfm: true })
 
@@ -40,6 +47,7 @@ const state = {
   streamingConvId: null as string | null,
   streamingContent: '',
   finalized: true,
+  config: null as PetConfig | null,
   persona: null as PersonaProfile | null,
   apiKeyStatus: null as ApiKeyStatus | null,
   timerStatus: null as TimerStatus | null,
@@ -128,6 +136,44 @@ async function refreshConversations(): Promise<void> {
     getCurrentPet().petId
   )
   renderConversationList()
+  renderLanguageSettings()
+}
+
+async function loadLanguageSettings(): Promise<void> {
+  state.config = await window.desktopPet.getConfig()
+  renderLanguageSettings()
+}
+
+function renderLanguageSettings(): void {
+  const defaultSelect = $('default-language-select') as HTMLSelectElement | null
+  const currentSelect = $('current-language-select') as HTMLSelectElement | null
+  const currentHint = $('current-language-hint')
+  if (!defaultSelect || !currentSelect || !currentHint) return
+
+  defaultSelect.value = state.config?.defaultResponseLanguage ?? 'zh-CN'
+  const currentConversation = state.conversations.find(
+    (conversation) => conversation.id === state.currentConversationId
+  )
+  const hasCurrentConversation = Boolean(currentConversation)
+  currentSelect.disabled = !hasCurrentConversation
+  currentSelect.value =
+    currentConversation?.responseLanguage ??
+    state.config?.defaultResponseLanguage ??
+    'zh-CN'
+  currentHint.textContent = hasCurrentConversation
+    ? '仅影响下一条发送的消息；历史消息不会被翻译。'
+    : '当前没有打开的会话，修改后将作为新会话默认语言。'
+}
+
+function populateLanguageOptions(): void {
+  const options = CHAT_LANGUAGES.map(
+    (language) =>
+      `<option value="${language}">${CHAT_LANGUAGE_LABELS[language]}</option>`
+  ).join('')
+  for (const id of ['default-language-select', 'current-language-select']) {
+    const select = $(id) as HTMLSelectElement
+    select.innerHTML = options
+  }
 }
 
 function renderConversationList(): void {
@@ -783,6 +829,44 @@ async function testApiKey(): Promise<void> {
   }
 }
 
+// ===== 对话语言设置 =====
+async function saveDefaultResponseLanguage(): Promise<void> {
+  const select = $('default-language-select') as HTMLSelectElement
+  try {
+    state.config = await updateDefaultLanguage(
+      window.desktopPet,
+      select.value as ChatLanguage
+    )
+    renderLanguageSettings()
+  } catch (error) {
+    console.error('保存默认对话语言失败:', error)
+    renderLanguageSettings()
+  }
+}
+
+async function saveCurrentResponseLanguage(): Promise<void> {
+  const select = $('current-language-select') as HTMLSelectElement
+  try {
+    const updated = await updateCurrentLanguage(
+      window.desktopPet,
+      state.currentConversationId,
+      select.value as ChatLanguage
+    )
+    if (updated) {
+      state.conversations = state.conversations.map((conversation) =>
+        conversation.id === updated.id ? updated : conversation
+      )
+    } else {
+      state.config = await window.desktopPet.getConfig()
+    }
+    renderConversationList()
+    renderLanguageSettings()
+  } catch (error) {
+    console.error('保存当前会话语言失败:', error)
+    renderLanguageSettings()
+  }
+}
+
 // ===== 工具 =====
 function escapeHtml(s: string): string {
   const div = document.createElement('div')
@@ -851,6 +935,12 @@ async function bootstrap(): Promise<void> {
   $('save-key-btn').addEventListener('click', () => void saveApiKey())
   $('delete-key-btn').addEventListener('click', () => void deleteApiKey())
   $('test-key-btn').addEventListener('click', () => void testApiKey())
+  $('default-language-select').addEventListener('change', () => {
+    void saveDefaultResponseLanguage()
+  })
+  $('current-language-select').addEventListener('change', () => {
+    void saveCurrentResponseLanguage()
+  })
   $('apply-rest-btn').addEventListener('click', () => void applyTimerConfig())
   $('work-mins-input').addEventListener('change', () => void applyTimerConfig())
   $('break-mins-input').addEventListener('change', () => void applyTimerConfig())
@@ -869,9 +959,15 @@ async function bootstrap(): Promise<void> {
   // 加载角色上下文（默认胡桃，托盘/菜单可指定）
   const pending = await window.desktopPet.getChatOpenOptions()
   await loadPetContext(pending?.petId ?? 'hutao')
+  populateLanguageOptions()
 
   // 加载数据
-  await Promise.all([refreshConversations(), loadPersona(), loadApiKeyStatus()])
+  await Promise.all([
+    loadLanguageSettings(),
+    refreshConversations(),
+    loadPersona(),
+    loadApiKeyStatus()
+  ])
   await loadTimerStatus()
 
   // 应用打开参数（托盘/菜单指定视图或会话）

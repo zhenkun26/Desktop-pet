@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { closeChatDb } from './chat-db'
+import { closeChatDb, getChatDb } from './chat-db'
 import {
   chatCreateConversation,
   chatGetPersonaProfile,
+  chatUpdateConversationResponseLanguage,
   onBusinessEvent,
   onChatStream,
   sendChatMessage
@@ -96,6 +97,55 @@ describe('chat-service', () => {
     expect(result).toMatchObject({ ok: true })
     expect(events).toEqual(['start', 'delta', 'delta', 'done'])
     expect(business).toEqual(['busy', 'idle'])
+  })
+
+  it('should snapshot the conversation language before generation continues', async () => {
+    closeChatDb()
+    const snapshotConversationId = chatCreateConversation(
+      'hutao',
+      undefined,
+      'zh-CN'
+    ).id
+    setApiKey('sk-test-key')
+    let prompt = ''
+    vi.mocked(streamChatCompletion).mockImplementation(
+      async ({ messages, onDelta }) => {
+        prompt = messages[0]?.content ?? ''
+        chatUpdateConversationResponseLanguage(snapshotConversationId, 'en-US')
+        onDelta?.('你好')
+        return '你好'
+      }
+    )
+
+    const result = await sendChatMessage({
+      conversationId: snapshotConversationId,
+      content: '快回答'
+    })
+
+    expect(result).toMatchObject({ ok: true })
+    expect(prompt).toContain('主要使用中文回复用户')
+    expect(prompt).not.toContain('主要使用English回复用户')
+  })
+
+  it('should normalize an invalid persisted language before building the prompt', async () => {
+    setApiKey('sk-test-key')
+    getChatDb()
+      .prepare('UPDATE conversations SET response_language = ? WHERE id = ?')
+      .run('ko-KR', conversationId)
+    let prompt = ''
+    vi.mocked(streamChatCompletion).mockImplementation(async ({ messages }) => {
+      prompt = messages[0]?.content ?? ''
+      return '中文回复'
+    })
+
+    const result = await sendChatMessage({
+      conversationId,
+      content: '无效语言测试'
+    })
+
+    expect(result).toMatchObject({ ok: true })
+    expect(prompt).toContain('主要使用中文回复用户')
+    expect(prompt).not.toContain('ko-KR')
   })
 
   it('should mark the assistant message as cancelled on abort', async () => {

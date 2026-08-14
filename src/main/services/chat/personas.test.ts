@@ -66,4 +66,44 @@ describe('buildSystemPrompt', () => {
     })
     expect(prompt).not.toContain('【额外偏好】')
   })
+
+  it.each([
+    ['zh-CN', '中文'],
+    ['en-US', 'English'],
+    ['ja-JP', '日本語']
+  ] as const)('should add an explicit %s response language constraint', (language, label) => {
+    const prompt = buildSystemPrompt(
+      'hutao',
+      {
+        petId: 'hutao',
+        userCallName: '旅行者',
+        relationship: '老朋友',
+        personalityBias: 'caring',
+        tonePreference: 'gentle',
+        extraNotes: '',
+        updatedAt: 0
+      },
+      language
+    )
+    expect(prompt).toContain(`【回复语言】主要使用${label}回复用户`)
+    expect(prompt).toContain('代码、URL、专有名词')
+  })
+
+  it('should protect the prompt from an invalid response language', () => {
+    const prompt = buildSystemPrompt(
+      'hutao',
+      {
+        petId: 'hutao',
+        userCallName: '旅行者',
+        relationship: '老朋友',
+        personalityBias: 'caring',
+        tonePreference: 'gentle',
+        extraNotes: '',
+        updatedAt: 0
+      },
+      'ko-KR' as never
+    )
+    expect(prompt).toContain('【回复语言】主要使用中文回复用户')
+    expect(prompt).not.toContain('ko-KR')
+  })
 })

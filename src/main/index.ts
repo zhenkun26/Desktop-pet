@@ -19,12 +19,14 @@ import {
   chatCreateConversation,
   chatDeleteConversation,
   chatGetApiKeyStatus,
+  chatGetConversationResponseLanguage,
   chatGetMessages,
   chatGetPersonaProfile,
   chatListConversations,
   chatRenameConversation,
   chatSetApiKey,
   chatTestApiKey,
+  chatUpdateConversationResponseLanguage,
   chatUpdatePersonaProfile,
   disposeChatService,
   onBusinessEvent,
@@ -38,6 +40,7 @@ import { loadConfig, saveConfig } from './store'
 import { migrateLegacyUserData } from './user-data-migration'
 import {
   DEFAULT_CONFIG,
+  normalizeChatLanguage,
   type OpenChatOptions,
   type PetConfig,
   type PetId,
@@ -72,6 +75,19 @@ function broadcastConfig(): void {
 function persist(): void {
   saveConfig(config)
   broadcastConfig()
+}
+
+function setDefaultResponseLanguage(value: unknown): PetConfig {
+  config.defaultResponseLanguage = normalizeChatLanguage(value)
+  persist()
+  return config
+}
+
+function resolveConversationId(conversationId: unknown): string {
+  if (typeof conversationId !== 'string' || !conversationId.trim()) {
+    throw new Error('conversationId 必须是非空字符串')
+  }
+  return conversationId
 }
 
 /**
@@ -293,6 +309,10 @@ function rebuildTrayMenu(): void {
 
 function registerIpc(): void {
   ipcMain.handle('get-config', () => config)
+  ipcMain.handle('get-default-response-language', () => config.defaultResponseLanguage)
+  ipcMain.handle('set-default-response-language', (_event, language: unknown) =>
+    setDefaultResponseLanguage(language)
+  )
 
   ipcMain.handle('list-pets', () => listPets())
 
@@ -365,16 +385,31 @@ function registerIpc(): void {
     chatListConversations(resolveRegisteredPetId(petId))
   )
   ipcMain.handle('create-conversation', (_event, petId: unknown, title?: string) =>
-    chatCreateConversation(resolveRegisteredPetId(petId), title)
+    chatCreateConversation(
+      resolveRegisteredPetId(petId),
+      title,
+      config.defaultResponseLanguage
+    )
   )
-  ipcMain.handle('rename-conversation', (_event, conversationId: string, title: string) =>
-    chatRenameConversation(conversationId, title)
+  ipcMain.handle('get-conversation-response-language', (_event, conversationId: unknown) =>
+    chatGetConversationResponseLanguage(resolveConversationId(conversationId))
   )
-  ipcMain.handle('delete-conversation', (_event, conversationId: string) =>
-    chatDeleteConversation(conversationId)
+  ipcMain.handle(
+    'set-conversation-response-language',
+    (_event, conversationId: unknown, language: unknown) =>
+      chatUpdateConversationResponseLanguage(
+        resolveConversationId(conversationId),
+        normalizeChatLanguage(language)
+      )
   )
-  ipcMain.handle('get-conversation-messages', (_event, conversationId: string) =>
-    chatGetMessages(conversationId)
+  ipcMain.handle('rename-conversation', (_event, conversationId: unknown, title: string) =>
+    chatRenameConversation(resolveConversationId(conversationId), title)
+  )
+  ipcMain.handle('delete-conversation', (_event, conversationId: unknown) =>
+    chatDeleteConversation(resolveConversationId(conversationId))
+  )
+  ipcMain.handle('get-conversation-messages', (_event, conversationId: unknown) =>
+    chatGetMessages(resolveConversationId(conversationId))
   )
   ipcMain.handle('send-chat-message', (_event, input: SendChatMessageInput) =>
     sendChatMessage(input)

@@ -182,6 +182,21 @@
         <section class="view" id="view-settings">
           <div class="panel-scroll">
             <div class="panel-card">
+              <h2>对话语言</h2>
+              <div class="subtitle">选择胡桃回复时使用的语言；不会翻译已有消息</div>
+              <div class="form-group">
+                <label for="default-language-select">新会话默认语言</label>
+                <select id="default-language-select"></select>
+              </div>
+              <div class="form-group">
+                <label for="current-language-select">当前会话语言</label>
+                <select id="current-language-select"></select>
+              </div>
+              <div class="subtitle" id="current-language-hint">
+                当前没有打开的会话，修改后将作为新会话默认语言。
+              </div>
+            </div>
+            <div class="panel-card">
               <h2>API 设置</h2>
               <div class="subtitle">配置 DeepSeek API Key（经系统安全加密后存储在本地）</div>
               <div class="status-box">
@@ -215,7 +230,7 @@
           <span class="tab-icon">⏰</span>时钟
         </button>
         <button class="tab" data-view="settings">
-          <span class="tab-icon">🌸</span>API
+          <span class="tab-icon">🌸</span>设置
         </button>
       </nav>
     </div>

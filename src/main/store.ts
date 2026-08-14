@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import {
   DEFAULT_CONFIG,
+  normalizeChatLanguage,
   PET_IDS,
   type PetConfig,
   type PetId
@@ -21,7 +22,14 @@ export function loadConfig(): PetConfig {
       typeof raw.petId === 'string' && PET_IDS.includes(raw.petId as PetId)
         ? (raw.petId as PetId)
         : DEFAULT_CONFIG.petId
-    return { ...DEFAULT_CONFIG, ...raw, petId }
+    return {
+      ...DEFAULT_CONFIG,
+      ...raw,
+      petId,
+      defaultResponseLanguage: normalizeChatLanguage(
+        raw.defaultResponseLanguage
+      )
+    }
   } catch (error) {
     console.error('[store] 读取配置失败，已回退默认配置:', error)
     return { ...DEFAULT_CONFIG }

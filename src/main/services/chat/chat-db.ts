@@ -3,13 +3,16 @@ import { app } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import type {
-  ChatMessageRecord,
-  ChatMessageRole,
-  ConversationRecord,
-  PersonaProfile,
-  PersonaProfileFields,
-  PetId
+import {
+  DEFAULT_CHAT_LANGUAGE,
+  normalizeChatLanguage,
+  type ChatLanguage,
+  type ChatMessageRecord,
+  type ChatMessageRole,
+  type ConversationRecord,
+  type PersonaProfile,
+  type PersonaProfileFields,
+  type PetId
 } from '../../../shared/types'
 import { mergePersonaProfile, sanitizePersonaFields } from './personas'
 
@@ -82,7 +85,8 @@ export function getChatDb(): LooseDb {
       title TEXT NOT NULL,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
-      last_message_preview TEXT
+      last_message_preview TEXT,
+      response_language TEXT NOT NULL DEFAULT 'zh-CN'
     );
 
     CREATE TABLE IF NOT EXISTS messages (
@@ -101,9 +105,41 @@ export function getChatDb(): LooseDb {
     CREATE INDEX IF NOT EXISTS idx_messages_conversation
       ON messages(conversation_id, created_at ASC);
   `)
+  try {
+    ensureConversationLanguageColumn(database)
+  } catch (error) {
+    database.close()
+    throw error
+  }
   db = database
   migrateLegacyDb(database)
   return database
+}
+
+/** 对已有数据库执行一次幂等的会话语言列迁移。 */
+function ensureConversationLanguageColumn(database: LooseDb): void {
+  const columns = database
+    .prepare('PRAGMA table_info(conversations)')
+    .all()
+  const hasLanguageColumn = columns.some(
+    (column) => column.name === 'response_language'
+  )
+  if (hasLanguageColumn) return
+
+  try {
+    const tx = transaction(database, () => {
+      database.exec(
+        `ALTER TABLE conversations
+         ADD COLUMN response_language TEXT NOT NULL DEFAULT ${sqlStringLiteral(
+           DEFAULT_CHAT_LANGUAGE
+         )}`
+      )
+    })
+    tx()
+  } catch (error) {
+    console.error('[migration] 会话语言字段迁移失败，数据库保持可重试状态:', error)
+    throw error
+  }
 }
 
 /**
@@ -123,9 +159,14 @@ function migrateLegacyDb(database: LooseDb): void {
     database.exec(`ATTACH DATABASE ${sqlStringLiteral(LEGACY_DB_PATH)} AS legacy`)
     const tx = transaction(database, () => {
       database.exec(`
-        INSERT INTO conversations (id, pet_id, title, created_at, updated_at, last_message_preview)
+        INSERT INTO conversations (
+          id, pet_id, title, created_at, updated_at, last_message_preview,
+          response_language
+        )
         SELECT id, pet_id, title, created_at * 1000, updated_at * 1000,
-               NULLIF(last_message_preview, '')
+               NULLIF(last_message_preview, ''), ${sqlStringLiteral(
+                 DEFAULT_CHAT_LANGUAGE
+               )}
         FROM legacy.conversations;
 
         INSERT INTO messages (id, conversation_id, role, content, created_at, status, error_code)
@@ -177,7 +218,8 @@ function rowToConversation(row: Record<string, unknown>): ConversationRecord {
     lastMessagePreview:
       row.last_message_preview == null
         ? null
-        : String(row.last_message_preview)
+        : String(row.last_message_preview),
+    responseLanguage: normalizeChatLanguage(row.response_language)
   }
 }
 
@@ -249,7 +291,8 @@ export function listConversations(petId: PetId): ConversationRecord[] {
 
 export function createConversation(
   petId: PetId,
-  title?: string
+  title?: string,
+  responseLanguage: ChatLanguage = DEFAULT_CHAT_LANGUAGE
 ): ConversationRecord {
   const now = Date.now()
   const id = randomUUID()
@@ -265,10 +308,18 @@ export function createConversation(
   getChatDb()
     .prepare(
       `INSERT INTO conversations (
-         id, pet_id, title, created_at, updated_at, last_message_preview
-       ) VALUES (?, ?, ?, ?, ?, NULL)`
+         id, pet_id, title, created_at, updated_at, last_message_preview,
+         response_language
+       ) VALUES (?, ?, ?, ?, ?, NULL, ?)`
     )
-    .run(id, petId, resolvedTitle, now, now)
+    .run(
+      id,
+      petId,
+      resolvedTitle,
+      now,
+      now,
+      normalizeChatLanguage(responseLanguage)
+    )
   return getConversation(id)!
 }
 
@@ -289,6 +340,28 @@ export function renameConversation(
     .prepare('UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?')
     .run(trimmed, Date.now(), id)
   return getConversation(id)
+}
+
+/** 更新会话回复语言；未知值统一回退为中文。 */
+export function updateConversationResponseLanguage(
+  id: string,
+  responseLanguage: ChatLanguage
+): ConversationRecord | null {
+  getChatDb()
+    .prepare(
+      `UPDATE conversations
+       SET response_language = ?, updated_at = ?
+       WHERE id = ?`
+    )
+    .run(normalizeChatLanguage(responseLanguage), Date.now(), id)
+  return getConversation(id)
+}
+
+export function getConversationResponseLanguage(
+  id: string
+): ChatLanguage | null {
+  const conversation = getConversation(id)
+  return conversation?.responseLanguage ?? null
 }
 
 export function deleteConversation(id: string): boolean {

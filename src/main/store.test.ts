@@ -39,6 +39,19 @@ describe('store', () => {
     expect(loadConfig().petId).toBe('hutao')
   })
 
+  it('should fall back to Chinese for a missing or invalid response language', () => {
+    writeFileSync(
+      configPath(),
+      JSON.stringify({ ...DEFAULT_CONFIG, defaultResponseLanguage: 'ko-KR' })
+    )
+    expect(loadConfig().defaultResponseLanguage).toBe('zh-CN')
+  })
+
+  it('should persist a supported default response language', () => {
+    saveConfig({ ...DEFAULT_CONFIG, defaultResponseLanguage: 'en-US' })
+    expect(loadConfig().defaultResponseLanguage).toBe('en-US')
+  })
+
   it('should create the userData directory when saving', () => {
     mkdirSync(app.getPath('userData'), { recursive: true })
     saveConfig(DEFAULT_CONFIG)
