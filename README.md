@@ -6,7 +6,7 @@
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Platform macOS](https://img.shields.io/badge/Platform-macOS-lightgrey?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![OpenSpec](https://img.shields.io/badge/OpenSpec-spec--driven-blueviolet)](openspec/)
-[![Tests](https://img.shields.io/badge/tests-81%20passed-brightgreen)](docs/ADVERSARIAL_REVIEW_REPORT.md)
+[![Tests](https://img.shields.io/badge/tests-109%20passed-brightgreen)](docs/ADVERSARIAL_REVIEW_REPORT.md)
 
 > **一款基于 Electron 的二次元桌宠陪伴应用。** 以角色形象呈现的透明置顶桌宠，支持拖拽互动、AI 角色扮演对话、休息提醒与番茄钟；当前内置角色为胡桃，并提供多角色扩展框架（见「新增桌宠」）。
 >
@@ -19,25 +19,45 @@
 ## 功能 / Features
 
 - 🐱 **桌面宠物 / Desktop Pet**：透明置顶窗口，支持拖拽与点击交互、分时段问候、气泡对话与思考动画 / A transparent, always-on-top window with drag-and-drop and click interaction, time-based greetings, and speech-bubble and thinking animations
-- 💬 **AI 角色对话 / AI Character Chat**：基于 DeepSeek 的角色扮演对话，SSE 流式输出，支持会话历史与角色设定自定义 / DeepSeek-driven roleplay chat with SSE streaming, conversation history, and customizable personas
+- 💬 **AI 角色对话 / AI Character Chat**：通过统一模型路由器接入 DeepSeek/OpenAI-compatible 供应商，支持 SSE 流式输出、会话历史与角色设定自定义 / Route chat through a unified model router to DeepSeek/OpenAI-compatible providers, with SSE streaming, conversation history, and customizable personas
+- 🌐 **三语会话 / Three-Language Conversations**：支持中文 `zh-CN`、英文 `en-US`、日文 `ja-JP`；可在设置中选择新会话默认语言，并按会话切换后续回复语言 / Support Chinese `zh-CN`, English `en-US`, and Japanese `ja-JP`; choose a new-conversation default in settings and switch the language for subsequent replies per conversation
+- 🔀 **多供应商、多模型、多 API Key / Multi-Provider, Multi-Model, Multi-Key**：按公司配置连接、端点、模型和独立或共享凭据，并在对话框下方选择当前模型 / Configure company-specific connections, endpoints, models, and isolated or shared credentials, then select the current model below the conversation
 - ⏰ **陪伴工具 / Companion Tools**：休息提醒（按累积活跃时长）与番茄钟（工作/休息状态机）/ Rest reminders based on accumulated active time, plus a Pomodoro timer with a work/break state machine
+
+## 新增能力 / What's New
+
+### 三语会话回复 / Three-Language Responses
+
+- 支持 `zh-CN`、`en-US`、`ja-JP` 三种回复语言，语言选择位于聊天窗口的「设置」页 / Supports `zh-CN`, `en-US`, and `ja-JP`; language controls are available in the chat window's “设置 / Settings” view.
+- “新会话默认语言”和“当前会话语言”分别保存；切换会话不会互相污染 / The “new conversation default language” and “current conversation language” are stored separately, so switching conversations does not leak settings between them.
+- 会话中途切换只影响切换完成后的新消息；正在生成的请求继续使用开始生成时的语言，既有消息不会被翻译或重写 / A mid-conversation switch affects only messages sent afterward; an in-progress request keeps its start-time language, and existing messages are never translated or rewritten.
+- 这是提示词级语言约束，不接入 translate.js、第三方翻译服务或额外翻译接口 / This is a prompt-level language constraint; it does not use translate.js, a third-party translation service, or an extra translation API.
+
+### 多供应商与多模型路由 / Multi-Provider and Multi-Model Routing
+
+- 在「设置 → 多供应商模型」中管理供应商连接、Base URL、API Key、模型配置和默认模型 / Use “设置 → 多供应商模型 / Settings → Multi-Provider Models” to manage provider connections, Base URLs, API keys, model profiles, and the default model.
+- 支持多个供应商连接、多个模型，以及同一供应商共享凭据或按模型隔离 API Key；首阶段通过 `openai-compatible` 适配器接入，DeepSeek 为默认兼容配置 / Supports multiple provider connections and models, with shared credentials per provider or isolated API keys per model; the first adapter uses `openai-compatible`, with DeepSeek as the default compatible configuration.
+- 对话框只展示已启用且凭据可用的模型；切换模型只影响后续消息，进行中的流式请求使用发送时的模型/供应商/凭据快照 / The conversation selector shows only enabled models with available credentials; switching affects subsequent messages, while active streams use the model/provider/credential snapshot captured at send time.
+- API Key 只在主进程通过 Electron `safeStorage` 保存和读取；渲染层、聊天记录和普通日志只接收凭据标识、掩码和状态 / API keys are stored and read only in the main process through Electron `safeStorage`; the renderer, chat history, and ordinary logs receive only credential identifiers, masks, and status.
+- 旧版单个 `deepseek-api-key.bin` 和缺少模型字段的旧会话会迁移/解释为默认 DeepSeek 配置，不改写历史消息 / The legacy single `deepseek-api-key.bin` and conversations without model fields migrate to or resolve as the default DeepSeek configuration without rewriting historical messages.
 
 ## 技术栈 / Tech Stack
 
 | 领域 / Area | 技术 / Technology |
 | --- | --- |
 | 桌面框架 / Desktop | Electron 39 · TypeScript 5.7（strict）· electron-vite 2 |
-| AI 对话 / AI Chat | DeepSeek API · SSE 流式 / streaming |
-| 存储 / Storage | node:sqlite（内置，零原生依赖 / built-in, zero native deps）· safeStorage 钥匙串级加密 |
+| AI 对话 / AI Chat | Model Router · OpenAI-compatible Provider Adapter · DeepSeek · SSE 流式 / streaming |
+| 存储 / Storage | node:sqlite（内置，零原生依赖 / built-in, zero native deps）· safeStorage 钥匙串级加密 · credentialId 隔离 |
+| 供应商边界 / Provider Boundary | 主进程凭据存储 / main-process secrets · API Key 掩码 / masking · HTTPS/受控 localhost 校验 / validation |
 | 安全渲染 / Rendering | marked · DOMPurify（Markdown 安全渲染 / safe rendering） |
 
 ## 架构总览 / Architecture
 
 ![二次元桌宠架构总览 / Architecture Overview](docs/assets/architecture.png)
 
-应用采用 Electron 三进程架构：渲染进程（桌宠窗口、聊天窗口）通过 preload 的 contextBridge 与主进程通信；主进程承载 ChatService（SSE 流式对话）、TimerService（休息提醒与番茄钟）与 PetRegistry（多角色框架）；本地持久化采用 node:sqlite 与 safeStorage 钥匙串级加密。
+应用采用 Electron 三进程架构：渲染进程（桌宠窗口、聊天窗口）通过 preload 的 contextBridge 与主进程通信；主进程承载 ChatService（语言快照、模型路由与 SSE 流式对话）、ProviderRouter/Provider Adapter（供应商请求与统一流式事件）、TimerService（休息提醒与番茄钟）与 PetRegistry（多角色框架）；本地持久化采用 node:sqlite 与 safeStorage 钥匙串级加密。
 
-The application follows a three-process Electron architecture: renderer processes (pet window and chat window) communicate with the main process through preload's contextBridge; the main process hosts ChatService (SSE chat), TimerService (rest reminder and Pomodoro), and PetRegistry (multi-character framework); persistence uses node:sqlite and keychain-level safeStorage encryption.
+The application follows a three-process Electron architecture: renderer processes (pet window and chat window) communicate with the main process through preload's contextBridge; the main process hosts ChatService (language snapshots, model routing, and SSE chat), ProviderRouter/Provider Adapter (provider requests and unified stream events), TimerService (rest reminder and Pomodoro), and PetRegistry (multi-character framework); persistence uses node:sqlite and keychain-level safeStorage encryption.
 
 ## 环境要求 / Prerequisites
 
@@ -58,9 +78,21 @@ npm run dev
 
 ## 配置 / Configuration
 
-在聊天窗口的「API」页配置 DeepSeek API Key，密钥经系统钥匙串级加密保存。
+在聊天窗口的「设置」页可以完成以下配置：
 
-Configure a DeepSeek API Key in the “API” tab of the chat window; the key is stored with OS keychain-level encryption.
+1. **对话语言 / Conversation language**：设置新会话默认语言，或修改当前会话后续回复语言；支持中文、English、日本語。
+2. **多供应商模型 / Multi-provider models**：新增供应商连接，填写受策略校验的 HTTPS（或显式允许的 localhost）端点；为连接保存 API Key，新增或停用模型，并选择默认模型。
+3. **对话框模型 / Conversation model**：在对话框下方选择当前已启用且凭据可用的模型；生成开始后切换不会串改当前流。
+
+API Key 由主进程通过 Electron `safeStorage` 加密保存，渲染层只显示掩码和可用状态；首次使用自定义供应商前需要确认消息数据路由。
+
+The chat window's “设置 / Settings” view supports:
+
+1. **Conversation language**: choose the default language for new conversations or the language for subsequent replies in the current conversation; Chinese, English, and Japanese are supported.
+2. **Multi-provider models**: add a provider connection, enter a policy-validated HTTPS (or explicitly allowed localhost) endpoint, save its API key, add/disable models, and choose a default model.
+3. **Conversation model**: select an enabled model with an available credential below the conversation; switching after generation starts cannot mix into the current stream.
+
+API keys are encrypted by the main process through Electron `safeStorage`; the renderer shows only masks and availability status. First use of a custom provider requires confirmation of the message data route.
 
 ## 开发 / Development
 
@@ -155,6 +187,9 @@ Desktop-pet/
 │   │   │   │   ├── chat-service.ts   # 生成状态机 / generation state machine
 │   │   │   │   ├── chat-db.ts        # SQLite 存取与迁移 / SQLite + migration
 │   │   │   │   ├── deepseek-client.ts# DeepSeek SSE 客户端(带超时)/ client w/ timeout
+│   │   │   │   ├── provider-config.ts # 供应商/模型配置 / provider & model config
+│   │   │   │   ├── provider-router.ts # 模型路由与适配器 / model routing & adapters
+│   │   │   │   ├── redaction.ts       # 日志/错误脱敏 / log & error redaction
 │   │   │   │   ├── sse.ts            # SSE 解析 / SSE parser
 │   │   │   │   ├── secrets-store.ts  # API Key 加密存储 / encrypted key storage
 │   │   │   │   ├── personas.ts       # 人设与清洗 / personas & sanitization
@@ -169,6 +204,7 @@ Desktop-pet/
 │   ├── renderer/                     # 渲染层 / renderer
 │   │   ├── index.html / main.ts      # 桌宠窗口 / pet window
 │   │   ├── chat.html / chat.ts       # 聊天窗口(四 Tab)/ chat window (4 tabs)
+│   │   ├── language-settings.ts      # 三语设置边界 / language settings boundary
 │   │   ├── pet.ts / bubble.ts        # 宠物控制器与气泡 / pet controller & bubble
 │   │   ├── pet-assets.ts             # 素材动态解析 / dynamic asset resolution
 │   │   └── style.css / chat.css      # 样式 / styles
@@ -193,6 +229,8 @@ This repository manages changes with the [OpenSpec](https://github.com/Fission-A
 - [docs/SECURITY.md](docs/SECURITY.md) — 安全报告 / Security reporting
 - [docs/ADVERSARIAL_REVIEW_REPORT.md](docs/ADVERSARIAL_REVIEW_REPORT.md) — 对抗性审查报告 / Adversarial review report
 - [deploy/README.md](deploy/README.md) — Kubernetes 参考部署 / K8s reference deployment
+- [openspec/specs/conversation-response-language/spec.md](openspec/specs/conversation-response-language/spec.md) — 三语会话规范 / three-language conversation specification
+- [openspec/specs/multi-provider-model-routing/spec.md](openspec/specs/multi-provider-model-routing/spec.md) — 多供应商多模型路由规范 / multi-provider, multi-model routing specification
 
 ## License / 许可证
 
