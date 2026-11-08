@@ -6,7 +6,7 @@
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Platform macOS](https://img.shields.io/badge/Platform-macOS-lightgrey?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![OpenSpec](https://img.shields.io/badge/OpenSpec-spec--driven-blueviolet)](openspec/)
-[![Tests](https://img.shields.io/badge/tests-109%20passed-brightgreen)](docs/ADVERSARIAL_REVIEW_REPORT.md)
+[历史审查报告 / Historical review report](docs/ADVERSARIAL_REVIEW_REPORT.md)
 
 > **一款基于 Electron 的二次元桌宠陪伴应用。** 以角色形象呈现的透明置顶桌宠，支持拖拽互动、AI 角色扮演对话、休息提醒与番茄钟；当前内置角色为胡桃，并提供多角色扩展框架（见「新增桌宠」）。
 >
