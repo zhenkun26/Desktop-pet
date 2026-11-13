@@ -1,253 +1,213 @@
-# 二次元桌宠 · Desktop-pet
+# Desktop-pet
+
+An anime desktop companion for macOS, with AI character chat, rest reminders, and a Pomodoro timer.
 
 [![CI](https://github.com/zhenkun26/Desktop-pet/actions/workflows/ci.yml/badge.svg)](https://github.com/zhenkun26/Desktop-pet/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Electron 39](https://img.shields.io/badge/Electron-39-47848F.svg?logo=electron&logoColor=white)](https://www.electronjs.org/)
-[![TypeScript 5.9.3](https://img.shields.io/badge/TypeScript-5.9.3-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Platform macOS](https://img.shields.io/badge/Platform-macOS-lightgrey?logo=apple&logoColor=white)](https://www.apple.com/macos/)
-[![OpenSpec](https://img.shields.io/badge/OpenSpec-spec--driven-blueviolet)](openspec/)
-[历史审查报告 / Historical review report](docs/history/ADVERSARIAL_REVIEW_REPORT.md)
+[![Platform: macOS](https://img.shields.io/badge/Platform-macOS-lightgrey?logo=apple&logoColor=white)](#requirements)
 
-> **一款基于 Electron 的二次元桌宠陪伴应用。** 以角色形象呈现的透明置顶桌宠，支持拖拽互动、AI 角色扮演对话、休息提醒与番茄钟；当前内置角色为胡桃，并提供多角色扩展框架（见「新增桌宠」）。
->
-> **A transparent, always-on-top anime desktop pet companion built with Electron.** It presents an anime character as a draggable pet and offers AI roleplay chat, rest reminders, and a Pomodoro timer. The app currently ships with Hutao and provides a multi-character extension framework (see “Adding a New Pet”).
+**English** | [简体中文](README-zh.md)
 
-工程记录 / Engineering records: [技术决策](docs/DECISIONS.md) · [精选问题复盘](docs/PROBLEM_REVIEWS.md)
+<p align="center">
+  <img src="src/renderer/assets/hutao.png" width="140" alt="Hutao, the built-in desktop companion" />
+</p>
 
-> ⚠️ **NOTICE / 版权声明**：胡桃立绘及角色形象等美术资源版权归 miHoYo（米哈游）所有，仅供个人学习与交流，禁止商用或二次分发；如需商用，请替换为自有素材。 / The Hutao artwork and related character assets are copyrighted by miHoYo and provided for personal learning only. Commercial use or redistribution is prohibited; replace the assets with your own for commercial use.
+Desktop-pet puts a draggable, always-on-top character on your desktop. Chat in character, personalize your companion, and use gentle reminders to balance focus and breaks. The app currently includes **Hutao** and a registry for adding other characters in source.
 
-## 功能 / Features
+> **Artwork notice:** Hutao artwork and character assets belong to miHoYo. Under this repository's existing notice, they are for personal learning and exchange only; commercial use and redistribution are prohibited. The MIT license covers the code. Replace these assets with your own for commercial use.
 
-- 🐱 **桌面宠物 / Desktop Pet**：透明置顶窗口，支持拖拽与点击交互、分时段问候、气泡对话与思考动画 / A transparent, always-on-top window with drag-and-drop and click interaction, time-based greetings, and speech-bubble and thinking animations
-- 💬 **AI 角色对话 / AI Character Chat**：通过统一模型路由器接入 DeepSeek/OpenAI-compatible 供应商，支持 SSE 流式输出、会话历史与角色设定自定义 / Route chat through a unified model router to DeepSeek/OpenAI-compatible providers, with SSE streaming, conversation history, and customizable personas
-- 🌐 **三语会话 / Three-Language Conversations**：支持中文 `zh-CN`、英文 `en-US`、日文 `ja-JP`；可在设置中选择新会话默认语言，并按会话切换后续回复语言 / Support Chinese `zh-CN`, English `en-US`, and Japanese `ja-JP`; choose a new-conversation default in settings and switch the language for subsequent replies per conversation
-- 🔀 **多供应商、多模型、多 API Key / Multi-Provider, Multi-Model, Multi-Key**：按公司配置连接、端点、模型和独立或共享凭据，并在对话框下方选择当前模型 / Configure company-specific connections, endpoints, models, and isolated or shared credentials, then select the current model below the conversation
-- ⏰ **陪伴工具 / Companion Tools**：休息提醒（按累积活跃时长）与番茄钟（工作/休息状态机）/ Rest reminders based on accumulated active time, plus a Pomodoro timer with a work/break state machine
+## Contents
 
-## 新增能力 / What's New
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Adding a character](#adding-a-character)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Help and troubleshooting](#help-and-troubleshooting)
+- [Acknowledgments](#acknowledgments)
+- [License](#license)
 
-### 三语会话回复 / Three-Language Responses
+## Features
 
-- 支持 `zh-CN`、`en-US`、`ja-JP` 三种回复语言，语言选择位于聊天窗口的「设置」页 / Supports `zh-CN`, `en-US`, and `ja-JP`; language controls are available in the chat window's “设置 / Settings” view.
-- “新会话默认语言”和“当前会话语言”分别保存；切换会话不会互相污染 / The “new conversation default language” and “current conversation language” are stored separately, so switching conversations does not leak settings between them.
-- 会话中途切换只影响切换完成后的新消息；正在生成的请求继续使用开始生成时的语言，既有消息不会被翻译或重写 / A mid-conversation switch affects only messages sent afterward; an in-progress request keeps its start-time language, and existing messages are never translated or rewritten.
-- 这是提示词级语言约束，不接入 translate.js、第三方翻译服务或额外翻译接口 / This is a prompt-level language constraint; it does not use translate.js, a third-party translation service, or an extra translation API.
+- **Desktop companion:** transparent window, drag and click interactions, time-based greetings, speech bubbles, and a thinking animation.
+- **AI character chat:** streamed text replies, saved conversations, and customizable persona preferences, with Markdown rendered through `marked` and DOMPurify.
+- **Multiple providers and models:** configure connections through an OpenAI-compatible adapter, share or separate credentials, and select a model for each conversation. DeepSeek is the built-in default.
+- **Three response languages:** Chinese (`zh-CN`), English (`en-US`), and Japanese (`ja-JP`), with separate defaults for new conversations and settings for the current conversation.
+- **Focus and breaks:** rest reminders count time while the pet is visible; the default reminder interval is 45 minutes, and the Pomodoro timer defaults to 25 minutes of work and 5 minutes of rest.
 
-### 多供应商与多模型路由 / Multi-Provider and Multi-Model Routing
+The interface is primarily Chinese. Response-language settings control AI replies, rather than translating the interface. Only Hutao is registered out of the box.
 
-- 在「设置 → 多供应商模型」中管理供应商连接、Base URL、API Key、模型配置和默认模型 / Use “设置 → 多供应商模型 / Settings → Multi-Provider Models” to manage provider connections, Base URLs, API keys, model profiles, and the default model.
-- 支持多个供应商连接、多个模型，以及同一供应商共享凭据或按模型隔离 API Key；首阶段通过 `openai-compatible` 适配器接入，DeepSeek 为默认兼容配置 / Supports multiple provider connections and models, with shared credentials per provider or isolated API keys per model; the first adapter uses `openai-compatible`, with DeepSeek as the default compatible configuration.
-- 对话框只展示已启用且凭据可用的模型；切换模型只影响后续消息，进行中的流式请求使用发送时的模型/供应商/凭据快照 / The conversation selector shows only enabled models with available credentials; switching affects subsequent messages, while active streams use the model/provider/credential snapshot captured at send time.
-- API Key 只在主进程通过 Electron `safeStorage` 保存和读取；渲染层、聊天记录和普通日志只接收凭据标识、掩码和状态 / API keys are stored and read only in the main process through Electron `safeStorage`; the renderer, chat history, and ordinary logs receive only credential identifiers, masks, and status.
-- 旧版单个 `deepseek-api-key.bin` 和缺少模型字段的旧会话会迁移/解释为默认 DeepSeek 配置，不改写历史消息 / The legacy single `deepseek-api-key.bin` and conversations without model fields migrate to or resolve as the default DeepSeek configuration without rewriting historical messages.
+## Quick start
 
-## 技术栈 / Tech Stack
+### Requirements
 
-| 领域 / Area | 技术 / Technology |
-| --- | --- |
-| 桌面框架 / Desktop | Electron 39 · TypeScript 5.9.3（strict）· electron-vite 2 |
-| AI 对话 / AI Chat | Model Router · OpenAI-compatible Provider Adapter · DeepSeek · SSE 流式 / streaming |
-| 存储 / Storage | node:sqlite（内置，零原生依赖 / built-in, zero native deps）· safeStorage 钥匙串级加密 · credentialId 隔离 |
-| 供应商边界 / Provider Boundary | 主进程凭据存储 / main-process secrets · API Key 掩码 / masking · HTTPS/受控 localhost 校验 / validation |
-| 安全渲染 / Rendering | marked · DOMPurify（Markdown 安全渲染 / safe rendering） |
+- macOS, with Apple Silicon / arm64 as the primary target.
+- Node.js **22.13 or later**, including the built-in `node:sqlite` module.
+- npm, included with Node.js.
+- An API key for your selected provider to use AI chat.
 
-TypeScript 的锁定版本为 **5.9.3**，`package.json` 声明范围仍为 `^5.7.2`；版本说明不表示升级了依赖。 / TypeScript is locked to **5.9.3**; the declared range in `package.json` remains `^5.7.2`. This version description does not imply a dependency upgrade.
-
-## 架构总览 / Architecture
-
-![二次元桌宠架构总览 / Architecture Overview](docs/assets/architecture.png)
-
-应用采用 Electron 三进程架构：渲染进程（桌宠窗口、聊天窗口）通过 preload 的 contextBridge 与主进程通信；主进程承载 ChatService（语言快照、模型路由与 SSE 流式对话）、ProviderRouter/Provider Adapter（供应商请求与统一流式事件）、TimerService（休息提醒与番茄钟）与 PetRegistry（多角色框架）；本地持久化采用 node:sqlite 与 safeStorage 钥匙串级加密。
-
-The application follows a three-process Electron architecture: renderer processes (pet window and chat window) communicate with the main process through preload's contextBridge; the main process hosts ChatService (language snapshots, model routing, and SSE chat), ProviderRouter/Provider Adapter (provider requests and unified stream events), TimerService (rest reminder and Pomodoro), and PetRegistry (multi-character framework); persistence uses node:sqlite and keychain-level safeStorage encryption.
-
-## 环境要求 / Prerequisites
-
-- macOS（以 Apple Silicon / arm64 为主）/ macOS (primarily Apple Silicon / arm64)
-- Node.js ≥ 22.13（内置 `node:sqlite` 的版本要求 / required by the built-in `node:sqlite`）
-- npm（随 Node.js 分发 / bundled with Node.js）
-
-## 快速开始 / Quick Start
-
-安装依赖并启动开发模式：
-
-Install dependencies and launch the development mode:
+### Run from source
 
 ```bash
-npm install
+git clone https://github.com/zhenkun26/Desktop-pet.git
+cd Desktop-pet
+npm ci
 npm run dev
 ```
 
-## 配置 / Configuration
+`npm ci` installs the versions recorded in `package-lock.json`. To create a macOS disk image, see [Development](#development).
 
-在聊天窗口的「设置」页可以完成以下配置：
+### Start your first conversation
 
-1. **对话语言 / Conversation language**：设置新会话默认语言，或修改当前会话后续回复语言；支持中文、English、日本語。
-2. **多供应商模型 / Multi-provider models**：新增供应商连接，填写受策略校验的 HTTPS（或显式允许的 localhost）端点；为连接保存 API Key，新增或停用模型，并选择默认模型。
-3. **对话框模型 / Conversation model**：在对话框下方选择当前已启用且凭据可用的模型；生成开始后切换不会串改当前流。
+1. Right-click the pet and choose **Chat with me** (`和我聊天`). The menu-bar icon also offers chat and pet visibility controls.
+2. Open **Settings** (`设置`). For the default DeepSeek connection, enter your key under **API settings** (`API 设置`), save it, and use **Test connection** (`测试连接`).
+3. Return to **Chat** (`对话`), choose an available model below the conversation, and send a message. Use `Enter` to send and `Shift+Enter` for a new line.
+4. Open **Character** (`角色`) to personalize the persona, or **Clock** (`时钟`) to configure reminders and the Pomodoro timer.
 
-API Key 由主进程通过 Electron `safeStorage` 加密保存，渲染层只显示掩码和可用状态；首次使用自定义供应商前需要确认消息数据路由。
+## Configuration
 
-The chat window's “设置 / Settings” view supports:
+### Providers and models
 
-1. **Conversation language**: choose the default language for new conversations or the language for subsequent replies in the current conversation; Chinese, English, and Japanese are supported.
-2. **Multi-provider models**: add a provider connection, enter a policy-validated HTTPS (or explicitly allowed localhost) endpoint, save its API key, add/disable models, and choose a default model.
-3. **Conversation model**: select an enabled model with an available credential below the conversation; switching after generation starts cannot mix into the current stream.
+Use **Settings → Multi-provider models** (`设置 → 多供应商模型`) to:
 
-API keys are encrypted by the main process through Electron `safeStorage`; the renderer shows only masks and availability status. First use of a custom provider requires confirmation of the message data route.
+1. Save a provider connection with a name, Base URL, and credential ID. Endpoints must use HTTPS; HTTP is allowed only for loopback hosts when explicitly enabled.
+2. Save the API key in that connection's card.
+3. Add a model with the provider's model ID and a display name, then choose the default model for new conversations.
+4. Test the connection from its card after adding the model. Confirm that messages may be sent to a custom provider before using it for chat.
 
-## 开发 / Development
+Models on one connection share its credential. Reuse a credential ID across connections to share a key, or create separate connections and credential IDs for independent keys. The conversation selector lists enabled models whose connections and credentials are available.
 
-```bash
-npm run dev            # 开发模式 / development mode
-npm run build          # 构建到 out/ / build to out/
-npm test               # 单元测试 / unit tests
-npm run test:coverage  # 覆盖率报告 / coverage report
-npm run build:mac      # 打包 macOS dmg / package macOS dmg
+Switching models affects subsequent messages. An active request keeps the provider, model, and credential selection captured when it started. Compatibility depends on the provider's support for the adapter's request format; see the [routing specification](openspec/specs/multi-provider-model-routing/spec.md).
+
+### Conversation language
+
+In **Settings → Conversation language** (`设置 → 对话语言`), select the default for new conversations or the response language for the current conversation.
+
+Each conversation stores its own language. A change applies to messages sent afterward; an active response keeps its original language, and existing messages are not translated or rewritten. The language instruction is part of the prompt and uses no separate translation service.
+
+### Local data and credentials
+
+Conversations and persona preferences are stored locally in SQLite. App and provider settings are stored in local JSON files under Electron's `userData` directory. In the packaged macOS app, this is normally `~/Library/Application Support/二次元桌宠/`.
+
+Saved API keys are encrypted and decrypted in the main process using Electron `safeStorage`. Credential status responses expose identifiers, masks, and availability, rather than stored plaintext keys. The application refuses to save keys when system encryption is unavailable.
+
+The legacy Electron `deepseek-api-key.bin` credential and conversations without model fields resolve to the default DeepSeek configuration, without rewriting existing messages. Older Tauri credentials use a different format; see the upgrade notes below.
+
+AI requests send the prompt and conversation context to the selected provider. Local history storage does not make provider-based chat offline. See the [security policy](docs/SECURITY.md) for reporting security issues.
+
+## Development
+
+### Commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Launch Electron with development reload support |
+| `npx tsc --noEmit` | Check TypeScript types |
+| `npm test` | Run the Vitest unit tests |
+| `npm run test:coverage` | Generate test coverage reports |
+| `npm run build` | Build main, preload, and renderer bundles into `out/` |
+| `npm run preview` | Preview the built application |
+| `npm run build:mac` | Build and package a macOS DMG in `release/` |
+| `npm run build:unpack` | Build an unpacked application in `release/` |
+
+The desktop stack is Electron 39, TypeScript in strict mode, electron-vite 2, and Vite 5. Persistence uses built-in `node:sqlite`, without a separate native SQLite dependency. The lockfile records TypeScript **5.9.3**; the declared range remains `^5.7.2`.
+
+The macOS packaging workflow disables automatic signing-identity discovery. Signed and notarized distribution is not configured by that workflow. Windows and Linux packaging are not covered by the current CI workflow.
+
+If your network requires an Electron download mirror, configure it locally and keep personal mirror settings out of commits.
+
+### Architecture
+
+```mermaid
+flowchart TD
+    Pet[Pet renderer] <--> Bridge[Preload contextBridge]
+    Chat[Chat renderer] <--> Bridge
+    Bridge <--> Main[Main process: windows, tray, IPC]
+    Main --> ChatService[ChatService and provider router]
+    Main --> Timer[TimerService]
+    Main --> Registry[PetRegistry]
+    ChatService <--> DB[(SQLite: conversations and personas)]
+    ChatService --> Secrets[safeStorage: encrypted API keys]
+    ChatService <--> Provider[Selected provider: SSE chat]
 ```
 
-> 国内网络环境可自行配置 electron 镜像（如 `electron_mirror`），请勿将个人镜像配置提交到仓库。 / Users in China may configure an electron mirror locally (e.g. `electron_mirror`); personal mirror configuration must not be committed.
-
-## 新增桌宠 / Adding a New Pet
-
-多角色框架已就绪，新增桌宠角色无需修改业务逻辑，按以下四步接入：
-
-The multi-character framework is ready. Adding a new pet does not require any business-logic changes — follow these four steps:
-
-1. **素材 / Assets**：将角色立绘放入 `src/renderer/assets/<petId>.png`（例如 `ganyu.png`）/ Put the character artwork at `src/renderer/assets/<petId>.png` (e.g. `ganyu.png`)
-2. **注册表登记 / Registration**：在 `src/main/services/pet/pet-registry.ts` 的 `PET_REGISTRY` 中登记一条 `PetDescriptor`（`petId` / `displayName` / `assetFileName` / `coreIdentity` / `speechStyle` / `greetings`）/ Register a `PetDescriptor` entry in `PET_REGISTRY`
-3. **类型登记 / Types**：在 `src/shared/types.ts` 的 `PetId` 联合类型及 `PET_IDS` / `PET_LABELS` 中增加角色标识 / Add the pet id to the `PetId` union and to `PET_IDS` / `PET_LABELS`
-4. **人设（可选）/ Persona (optional)**：如需独立默认人设，在 `personas.ts` 的 `BUILTIN_PERSONAS` 中增加条目 / Add an entry in `BUILTIN_PERSONAS` if a dedicated default persona is needed
-
-接口契约（已全链路打通，无需改动）：
-
-The API contract is fully wired and requires no changes:
-
-```ts
-window.desktopPet.listPets()      // Promise<PetDescriptor[]>  全部角色 / all pets
-window.desktopPet.getPet(petId)   // Promise<PetDescriptor>    未注册抛错 / throws if unregistered
-openChat({ petId, view })         // 直达指定角色的会话/人设/番茄钟 / open chat for a pet
-```
-
-- 会话与人设数据按 `pet_id` 自动隔离 / Conversations and personas are isolated by `pet_id`
-- 素材经 `pet-assets.ts` 动态解析，打包后自动生成哈希 URL / Assets are resolved dynamically via `pet-assets.ts` with hashed URLs
-- 桌宠窗口按 `config.petId` 渲染立绘与时段问候 / The pet window renders the artwork and greetings by `config.petId`
-
-## 项目结构 / Project Structure
+The main process owns chat generation, provider routing, timers, and credentials. Renderers communicate through the typed preload bridge. Assistant messages are persisted during generation, and the send-message IPC call resolves at termination; stream events provide incremental UI updates. Historical messages and the active stream use separate DOM containers.
 
 <details>
-<summary>展开完整目录树（带双语注释）/ Expand the full tree with bilingual comments</summary>
+<summary>Project layout</summary>
 
 ```text
-Desktop-pet/
-├── .github/                          # GitHub 治理:CI、发版、模板 / governance: CI, release, templates
-│   ├── workflows/
-│   │   ├── ci.yml                    # CI:typecheck + build + test + gitleaks
-│   │   └── release-mac.yml           # 手动触发 dmg 发版 / manual dmg release
-│   ├── CODEOWNERS                    # 审查负责人 / code review owners
-│   ├── PULL_REQUEST_TEMPLATE.md      # PR 模板 / PR template
-│   ├── ruleset-main.json             # main 分支保护规则 / main branch ruleset
-│   └── ISSUE_TEMPLATE/               # issue 模板 / issue templates
-├── .codex/skills/                    # Codex OpenSpec 工作流 skills
-├── .dockerignore                     # Docker 构建上下文排除 / Docker context excludes
-├── .gitignore                        # git 忽略规则 / gitignore rules
-├── AGENTS.md                         # 代理代码规范 / agent coding standards
-├── CHANGELOG.md                      # 版本历史 / changelog
-├── CONTRIBUTORS.md                   # 贡献者列表 / contributors
-├── Dockerfile                        # 构建与冒烟检查镜像 / build and smoke-check image
-├── LICENSE                           # MIT 许可 / MIT license
-├── README.md                         # 项目说明(本文件)/ this file
-├── docs/                             # 文档 / docs
-│   ├── history/                      # 历史过程文档 / historical process documents
-│   │   ├── ADVERSARIAL_REVIEW_REPORT.md
-│   │   └── EXECUTION_PLAN.md
-│   ├── reference/k8s/                # 未来服务端参考模板 / future server reference templates
-│   ├── CONTRIBUTING.md               # 贡献指南 / contributing guide
-│   ├── SECURITY.md                   # 安全报告 / security reporting
-│   └── assets/architecture.png       # 架构图 / architecture diagram
-├── electron-builder.yml              # macOS 打包配置 / packaging config
-├── electron.vite.config.ts           # electron-vite 构建配置 / build config
-├── openspec/                         # OpenSpec 变更管理 / change management
-│   ├── config.yaml                   # 项目上下文 / project context
-│   ├── specs/                        # 主 specs / main specs
-│   └── changes/                      # 进行中/已归档 change / active & archived changes
-├── package.json                      # 依赖与脚本 / deps & scripts
-├── package-lock.json                 # 依赖锁文件 / lockfile
-├── pets-picture/                     # 立绘源图(版权归 miHoYo)/ source art (miHoYo)
-├── resources/                        # 应用/托盘图标 / app & tray icons
-├── scripts/
-│   ├── smoke.sh                      # 默认 runner 产物校验 / artifact smoke (default)
-│   └── smoke.mjs                     # runner-node 语法校验 / syntax check variant
-├── src/                              # 源代码 / source
-│   ├── main/                         # Electron 主进程 / main process
-│   │   ├── index.ts                  # 入口:窗口/托盘/IPC / entry: windows, tray, IPC
-│   │   ├── chat.ts                   # 聊天窗口单例 / chat window singleton
-│   │   ├── icons.ts                  # 图标解析 / icon resolution
-│   │   ├── store.ts                  # 配置持久化 / config persistence
-│   │   ├── user-data-migration.ts    # userData 迁移 / userData migration
-│   │   ├── services/
-│   │   │   ├── chat/                 # AI 对话服务 / chat services
-│   │   │   │   ├── chat-service.ts   # 生成状态机 / generation state machine
-│   │   │   │   ├── chat-db.ts        # SQLite 存取与迁移 / SQLite + migration
-│   │   │   │   ├── deepseek-client.ts# DeepSeek SSE 客户端(带超时)/ client w/ timeout
-│   │   │   │   ├── provider-config.ts # 供应商/模型配置 / provider & model config
-│   │   │   │   ├── provider-router.ts # 模型路由与适配器 / model routing & adapters
-│   │   │   │   ├── redaction.ts       # 日志/错误脱敏 / log & error redaction
-│   │   │   │   ├── sse.ts            # SSE 解析 / SSE parser
-│   │   │   │   ├── secrets-store.ts  # API Key 加密存储 / encrypted key storage
-│   │   │   │   ├── personas.ts       # 人设与清洗 / personas & sanitization
-│   │   │   │   ├── prompt-builder.ts # 系统提示词 / system prompt builder
-│   │   │   │   ├── event-emitter.ts  # 监听器隔离派发 / isolated event dispatch
-│   │   │   │   ├── chat-input.ts     # 消息校验 / message validation
-│   │   │   │   ├── api-key-utils.ts  # Key 校验与掩码 / key validation & masking
-│   │   │   │   └── *.test.ts         # 单元测试 / unit tests
-│   │   │   ├── pet/pet-registry.ts   # 角色注册表 / pet registry
-│   │   │   └── timer/timer-service.ts# 休息提醒 + 番茄钟 / reminders + Pomodoro
-│   ├── preload/index.ts              # contextBridge 桥 / contextBridge bridge
-│   ├── renderer/                     # 渲染层 / renderer
-│   │   ├── index.html / main.ts      # 桌宠窗口 / pet window
-│   │   ├── chat.html / chat.ts       # 聊天窗口(四 Tab)/ chat window (4 tabs)
-│   │   ├── language-settings.ts      # 三语设置边界 / language settings boundary
-│   │   ├── pet.ts / bubble.ts        # 宠物控制器与气泡 / pet controller & bubble
-│   │   ├── pet-assets.ts             # 素材动态解析 / dynamic asset resolution
-│   │   └── style.css / chat.css      # 样式 / styles
-│   └── shared/types.ts               # 类型契约 / type contracts
-├── test/mocks/electron.ts            # electron mock(测试用)/ electron mock
-├── tsconfig.json                     # TypeScript 配置 / TS config
-└── vitest.config.mts                 # vitest 与覆盖率 / vitest & coverage
+src/
+  main/          Electron lifecycle, windows, tray, IPC, and services
+    services/
+      chat/      Chat state, provider routing, SQLite, and credentials
+      pet/       Character registry
+      timer/     Rest reminders and Pomodoro state
+  preload/       Typed contextBridge API
+  renderer/      Pet and chat views, styles, and artwork
+  shared/        Shared types and contracts
+test/mocks/      Electron mocks for unit tests
+resources/       App and menu-bar icons
+docs/            Guides, architecture decisions, and historical records
+openspec/        Behavior specifications and change artifacts
+scripts/         Build-artifact smoke checks
+.github/         CI, packaging workflow, and collaboration templates
 ```
 
 </details>
 
-根目录 `Dockerfile` 用于容器内构建和产物冒烟检查，不提供桌宠的服务端部署。K8s 清单位于 [docs/reference/k8s/](docs/reference/k8s/README.md)，仅供未来服务端组件参考；不要把 Electron 桌面应用部署进 Kubernetes。 / The root `Dockerfile` supports container builds and artifact smoke checks; it does not deploy the desktop pet as a server. The [K8s manifests](docs/reference/k8s/README.md) are reference templates for a future server component, not a Kubernetes deployment of the Electron desktop app.
+The root `Dockerfile` supports container builds and artifact smoke checks. [Kubernetes manifests](docs/reference/k8s/README.md) are reference templates for a future server component; the desktop application runs locally.
 
-## OpenSpec 工作流 / OpenSpec Workflow
+## Adding a character
 
-本仓库采用 [OpenSpec](https://github.com/Fission-AI/OpenSpec) 的 spec-driven 流程管理变更：1) 以 `openspec new change <name>` 创建变更；2) 依次产出 proposal → specs → design → tasks 工件；3) 按 tasks 实现后，以 `openspec archive <change-name>` 归档。功能或修复类变更必须先建立 OpenSpec change（见「相关文档」）。
+Character support is defined in source. To register another pet:
 
-This repository manages changes with the [OpenSpec](https://github.com/Fission-AI/OpenSpec) spec-driven workflow: 1) create a change with `openspec new change <name>`; 2) produce the proposal → specs → design → tasks artifacts in order; 3) implement the tasks and archive the change with `openspec archive <change-name>`. Feature or fix changes must start with an OpenSpec change (see “Docs”).
+1. Add artwork that you have permission to use at `src/renderer/assets/<petId>.png`.
+2. Add the ID to `PetId`, `PET_IDS`, and `PET_LABELS` in [shared types](src/shared/types.ts).
+3. Add an entry to `BUILTIN_PERSONAS` in [personas.ts](src/main/services/chat/personas.ts), including identity, speech style, and default preference fields. The registry reads these persona definitions.
+4. Register a `PetDescriptor` in [pet-registry.ts](src/main/services/pet/pet-registry.ts) with the ID, display name, asset filename, identity, speech style, and greetings.
 
-## 相关文档 / Docs
+The existing bridge provides `listPets()`, `getPet(petId)`, and `openChat({ petId, view })`. Conversations and personas are scoped by pet ID, and [pet-assets.ts](src/renderer/pet-assets.ts) resolves artwork URLs for the build. The desktop pet uses `config.petId` for its artwork and greetings. Run type checks, tests, and a build after extending the registry.
 
-- [CHANGELOG.md](CHANGELOG.md) — 版本历史 / Changelog
-- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — 贡献指南 / Contributing guide
-- [docs/SECURITY.md](docs/SECURITY.md) — 安全报告 / Security reporting
-- [docs/history/ADVERSARIAL_REVIEW_REPORT.md](docs/history/ADVERSARIAL_REVIEW_REPORT.md) — 历史对抗性审查报告 / Historical adversarial review report
-- [docs/history/EXECUTION_PLAN.md](docs/history/EXECUTION_PLAN.md) — 历史推进方案 / Historical execution plan
-- [docs/reference/k8s/README.md](docs/reference/k8s/README.md) — Kubernetes 参考部署 / K8s reference deployment
-- [openspec/specs/conversation-response-language/spec.md](openspec/specs/conversation-response-language/spec.md) — 三语会话规范 / three-language conversation specification
-- [openspec/specs/multi-provider-model-routing/spec.md](openspec/specs/multi-provider-model-routing/spec.md) — 多供应商多模型路由规范 / multi-provider, multi-model routing specification
+## Documentation
 
-## License / 许可证
+| Document | Contents |
+| --- | --- |
+| [Changelog](CHANGELOG.md) | Release history and unreleased changes |
+| [Contributing guide](docs/CONTRIBUTING.md) | Development workflow and PR requirements |
+| [Security policy](docs/SECURITY.md) | Security reporting and conventions |
+| [Architecture decisions](docs/DECISIONS.md) | Design choices, evidence, and verification limits |
+| [Problem reviews](docs/PROBLEM_REVIEWS.md) | Selected investigations and lessons learned |
+| [Response-language specification](openspec/specs/conversation-response-language/spec.md) | Conversation language behavior |
+| [Provider-routing specification](openspec/specs/multi-provider-model-routing/spec.md) | Provider, model, and credential contracts |
+| [Historical review report](docs/history/ADVERSARIAL_REVIEW_REPORT.md) | Earlier review findings and test results |
+| [Historical execution plan](docs/history/EXECUTION_PLAN.md) | Earlier implementation planning |
 
-代码部分采用 MIT 许可证；美术资源版权归 miHoYo 所有，详见上方 NOTICE。
+Historical reports describe their recorded revision. Their test counts and results do not establish the status of the current commit; use the linked CI run for commit-specific checks. Outstanding manual GUI and migration checks are recorded in the OpenSpec tasks and engineering documents.
 
-The code is licensed under MIT; art assets are copyrighted by miHoYo — see the NOTICE above.
+## Contributing
 
-## 致谢与贡献者 / Acknowledgments & Contributors
+Read [CONTRIBUTING.md](docs/CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) before making changes. Feature, fix, and behavior changes start with an [OpenSpec change](openspec/changes/), followed by proposal, specifications, design, and tasks. Documentation-only changes can declare `skip_specs: true`.
 
-特别感谢 [kirineko](https://github.com/kirineko/) 的开源项目 [kirineko/desktop-pet](https://github.com/kirineko/desktop-pet)：本项目的窗口/拖拽/气泡交互、流式聊天事件模型与工程结构参考了其架构与实现。
+Use Conventional Commits and open a pull request against `main`. Keep the English and Chinese READMEs consistent when changing shared information. CI checks types, builds the app, runs unit tests, and scans for secrets with Gitleaks.
 
-Special thanks to [kirineko](https://github.com/kirineko/) for the open-source [kirineko/desktop-pet](https://github.com/kirineko/desktop-pet): this project references its architecture and implementation for window/drag/bubble interaction, the streaming chat event model, and the engineering structure.
+## Help and troubleshooting
 
-> 本项目由 Vibe Coding 辅助实现落地。Built with Vibe Coding.
+- **Questions, bugs, or feature requests:** use [GitHub Issues](https://github.com/zhenkun26/Desktop-pet/issues). Include your macOS version, app version, reproduction steps, and redacted error details.
+- **No selectable chat model:** check that the provider and model are enabled, a credential is saved, and the connection test succeeds. Confirm the message route for a custom provider.
+- **Pet hidden or off-screen:** use the menu-bar icon to show it again; showing the pet recovers a fully off-screen window.
+- **Upgrading from an older version:** see the migration notes and limitations in the [changelog](CHANGELOG.md). Legacy Tauri credentials and customized personas need to be configured again; manual migration acceptance remains documented separately.
+- **Security issues:** follow [SECURITY.md](docs/SECURITY.md). Never include real API keys in issues, pull requests, or logs shared with others.
+
+## Acknowledgments
+
+Thanks to [kirineko/desktop-pet](https://github.com/kirineko/desktop-pet) for the architecture and implementation references for window, drag, and speech-bubble interactions, streaming chat events, and project structure.
+
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for contributors and roles. The project was developed with AI coding assistance; the project owner remains responsible for review and releases.
+
+## License
+
+The code is licensed under the [MIT License](LICENSE). Hutao artwork and character assets are subject to the separate artwork notice above and are not covered by the code license.

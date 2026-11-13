@@ -10,6 +10,7 @@
 
 ### Changed
 
+- Restructure the project introduction as an English `README.md` and a matching Simplified Chinese `README-zh.md`, with language navigation, complete source setup, configuration, architecture, contribution, help, and licensing information. Clarify response-language, character-registration, provider-compatibility, and verification boundaries without changing application behavior.
 - Repository organization: move K8s reference manifests from `deploy/` to `docs/reference/k8s/` and historical process documents to `docs/history/`; retain the root Dockerfile for build/smoke checks and update path references.
 - Manually archive the completed `add-changelog` and superseded `hutao-desktop-pet-tauri` changes without modifying main specifications; reconcile the already-satisfied `asarUnpack` task while preserving all outstanding manual checks.
 - Align README TypeScript information with lockfile version 5.9.3 (declared range `^5.7.2`) and point the historical review report link (which replaced the static test-count badge in #11) to `docs/history/`.
