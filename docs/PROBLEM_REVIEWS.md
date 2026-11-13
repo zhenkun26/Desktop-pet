@@ -54,5 +54,5 @@
 
 - **现象与影响**：外部服务不返回时，生成流程无限等待，UI 无法结束。
 - **调查与修复**：对抗性审查将其列为 P1；加入流式空闲超时、API Key 测试超时和 `timeout` 错误码，并在终结路径清理定时器。
-- **验证**：[`ADVERSARIAL_REVIEW_REPORT.md`](ADVERSARIAL_REVIEW_REPORT.md) 记录修复和测试覆盖；当前 `deepseek-client.test.ts` 通过。
+- **验证**：[`ADVERSARIAL_REVIEW_REPORT.md`](history/ADVERSARIAL_REVIEW_REPORT.md) 记录修复和测试覆盖；当前 `deepseek-client.test.ts` 通过。
 - **防止复发**：所有外部请求必须有超时；错误码和 UI 恢复路径必须有测试。

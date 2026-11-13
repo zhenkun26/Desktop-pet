@@ -3,10 +3,10 @@
 [![CI](https://github.com/zhenkun26/Desktop-pet/actions/workflows/ci.yml/badge.svg)](https://github.com/zhenkun26/Desktop-pet/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Electron 39](https://img.shields.io/badge/Electron-39-47848F.svg?logo=electron&logoColor=white)](https://www.electronjs.org/)
-[![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript 5.9.3](https://img.shields.io/badge/TypeScript-5.9.3-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Platform macOS](https://img.shields.io/badge/Platform-macOS-lightgrey?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![OpenSpec](https://img.shields.io/badge/OpenSpec-spec--driven-blueviolet)](openspec/)
-[历史审查报告 / Historical review report](docs/ADVERSARIAL_REVIEW_REPORT.md)
+[历史审查报告 / Historical review report](docs/history/ADVERSARIAL_REVIEW_REPORT.md)
 
 > **一款基于 Electron 的二次元桌宠陪伴应用。** 以角色形象呈现的透明置顶桌宠，支持拖拽互动、AI 角色扮演对话、休息提醒与番茄钟；当前内置角色为胡桃，并提供多角色扩展框架（见「新增桌宠」）。
 >
@@ -45,11 +45,13 @@
 
 | 领域 / Area | 技术 / Technology |
 | --- | --- |
-| 桌面框架 / Desktop | Electron 39 · TypeScript 5.7（strict）· electron-vite 2 |
+| 桌面框架 / Desktop | Electron 39 · TypeScript 5.9.3（strict）· electron-vite 2 |
 | AI 对话 / AI Chat | Model Router · OpenAI-compatible Provider Adapter · DeepSeek · SSE 流式 / streaming |
 | 存储 / Storage | node:sqlite（内置，零原生依赖 / built-in, zero native deps）· safeStorage 钥匙串级加密 · credentialId 隔离 |
 | 供应商边界 / Provider Boundary | 主进程凭据存储 / main-process secrets · API Key 掩码 / masking · HTTPS/受控 localhost 校验 / validation |
 | 安全渲染 / Rendering | marked · DOMPurify（Markdown 安全渲染 / safe rendering） |
+
+TypeScript 的锁定版本为 **5.9.3**，`package.json` 声明范围仍为 `^5.7.2`；版本说明不表示升级了依赖。 / TypeScript is locked to **5.9.3**; the declared range in `package.json` remains `^5.7.2`. This version description does not imply a dependency upgrade.
 
 ## 架构总览 / Architecture
 
@@ -152,13 +154,14 @@ Desktop-pet/
 ├── AGENTS.md                         # 代理代码规范 / agent coding standards
 ├── CHANGELOG.md                      # 版本历史 / changelog
 ├── CONTRIBUTORS.md                   # 贡献者列表 / contributors
-├── Dockerfile                        # 多阶段 CI 镜像(默认 runner 23MB)/ multi-stage CI image
+├── Dockerfile                        # 构建与冒烟检查镜像 / build and smoke-check image
 ├── LICENSE                           # MIT 许可 / MIT license
 ├── README.md                         # 项目说明(本文件)/ this file
-├── deploy/                           # K8s 参考清单 / K8s reference manifests
 ├── docs/                             # 文档 / docs
-│   ├── ADVERSARIAL_REVIEW_REPORT.md  # 对抗性审查报告 / adversarial review report
-│   ├── EXECUTION_PLAN.md             # 推进方案 / execution plan
+│   ├── history/                      # 历史过程文档 / historical process documents
+│   │   ├── ADVERSARIAL_REVIEW_REPORT.md
+│   │   └── EXECUTION_PLAN.md
+│   ├── reference/k8s/                # 未来服务端参考模板 / future server reference templates
 │   ├── CONTRIBUTING.md               # 贡献指南 / contributing guide
 │   ├── SECURITY.md                   # 安全报告 / security reporting
 │   └── assets/architecture.png       # 架构图 / architecture diagram
@@ -216,6 +219,8 @@ Desktop-pet/
 
 </details>
 
+根目录 `Dockerfile` 用于容器内构建和产物冒烟检查，不提供桌宠的服务端部署。K8s 清单位于 [docs/reference/k8s/](docs/reference/k8s/README.md)，仅供未来服务端组件参考；不要把 Electron 桌面应用部署进 Kubernetes。 / The root `Dockerfile` supports container builds and artifact smoke checks; it does not deploy the desktop pet as a server. The [K8s manifests](docs/reference/k8s/README.md) are reference templates for a future server component, not a Kubernetes deployment of the Electron desktop app.
+
 ## OpenSpec 工作流 / OpenSpec Workflow
 
 本仓库采用 [OpenSpec](https://github.com/Fission-AI/OpenSpec) 的 spec-driven 流程管理变更：1) 以 `openspec new change <name>` 创建变更；2) 依次产出 proposal → specs → design → tasks 工件；3) 按 tasks 实现后，以 `openspec archive <change-name>` 归档。功能或修复类变更必须先建立 OpenSpec change（见「相关文档」）。
@@ -227,8 +232,9 @@ This repository manages changes with the [OpenSpec](https://github.com/Fission-A
 - [CHANGELOG.md](CHANGELOG.md) — 版本历史 / Changelog
 - [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — 贡献指南 / Contributing guide
 - [docs/SECURITY.md](docs/SECURITY.md) — 安全报告 / Security reporting
-- [docs/ADVERSARIAL_REVIEW_REPORT.md](docs/ADVERSARIAL_REVIEW_REPORT.md) — 对抗性审查报告 / Adversarial review report
-- [deploy/README.md](deploy/README.md) — Kubernetes 参考部署 / K8s reference deployment
+- [docs/history/ADVERSARIAL_REVIEW_REPORT.md](docs/history/ADVERSARIAL_REVIEW_REPORT.md) — 历史对抗性审查报告 / Historical adversarial review report
+- [docs/history/EXECUTION_PLAN.md](docs/history/EXECUTION_PLAN.md) — 历史推进方案 / Historical execution plan
+- [docs/reference/k8s/README.md](docs/reference/k8s/README.md) — Kubernetes 参考部署 / K8s reference deployment
 - [openspec/specs/conversation-response-language/spec.md](openspec/specs/conversation-response-language/spec.md) — 三语会话规范 / three-language conversation specification
 - [openspec/specs/multi-provider-model-routing/spec.md](openspec/specs/multi-provider-model-routing/spec.md) — 多供应商多模型路由规范 / multi-provider, multi-model routing specification
 

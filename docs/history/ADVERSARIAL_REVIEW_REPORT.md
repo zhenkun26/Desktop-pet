@@ -1,5 +1,7 @@
 # 二次元桌宠 — 最终对抗性生产级审查与验收报告
 
+> Historical document retained during the 2026-11-12 repository cleanup. Original results, versions, and pending-work descriptions describe their original context, not current acceptance or authorization to run these commands. Path examples have been updated for the new layout.
+
 > 审查日期:2026-08-04 | 审查标准:以"即将部署到金融级核心交易系统"为对抗基线
 > 结论:**未发现 P0 级必现崩溃/数据丢失/安全入侵路径;7 项 P1 已全部修复;81 个测试全绿;核心服务范围行覆盖率 86.27%**。
 > 重要适配说明:本仓库交付物是 **Electron 桌面应用**(本地单用户、无 HTTP 服务端)。容器化与 K8s 章节按"CI 产物校验镜像 + 未来服务端伴生 API 参考模板"落地,并对不适用项给出明确理由,未伪造压测数据。
@@ -187,17 +189,17 @@ docker push <YOUR_REGISTRY>/hutao-pet-ci:latest
 
 ## 4. K8s 一键部署指南
 
-> 当前桌面应用无服务端,**请勿将桌面二进制部署进 K8s**。以下为未来伴生 API 的参考模板,全部占位符见 `deploy/README.md`。
+> 当前桌面应用无服务端,**请勿将桌面二进制部署进 K8s**。以下为未来伴生 API 的参考模板,全部占位符见 `docs/reference/k8s/README.md`。
 
 ```bash
-kubectl apply -f deploy/00-namespace.yaml
-kubectl apply -f deploy/01-configmap.yaml
-kubectl apply -f deploy/02-secret.yaml
-kubectl apply -f deploy/03-deployment.yaml
-kubectl apply -f deploy/04-service.yaml
-kubectl apply -f deploy/05-ingress.yaml
-kubectl apply -f deploy/06-hpa.yaml
-kubectl apply -f deploy/07-pdb.yaml
+kubectl apply -f docs/reference/k8s/00-namespace.yaml
+kubectl apply -f docs/reference/k8s/01-configmap.yaml
+kubectl apply -f docs/reference/k8s/02-secret.yaml
+kubectl apply -f docs/reference/k8s/03-deployment.yaml
+kubectl apply -f docs/reference/k8s/04-service.yaml
+kubectl apply -f docs/reference/k8s/05-ingress.yaml
+kubectl apply -f docs/reference/k8s/06-hpa.yaml
+kubectl apply -f docs/reference/k8s/07-pdb.yaml
 ```
 
 Secrets(Base64 占位符替换):
@@ -242,7 +244,7 @@ curl http://localhost:8080/readyz    # ReadinessProbe
 - SQLite 同步 API + WAL,事务 BEGIN/COMMIT/ROLLBACK 齐全,无异步交错;
 - 数据库预热移至启动期,避免首次消息冻结。
 
-若未来落地服务端伴生 API,可在 `deploy/` 模板上直接 `kubectl apply` 并用 `hey`/`k6` 执行 1000 并发压测,示例:
+若未来落地服务端伴生 API,可在 `docs/reference/k8s/` 模板上直接 `kubectl apply` 并用 `hey`/`k6` 执行 1000 并发压测,示例:
 
 ```bash
 hey -n 10000 -c 1000 http://localhost:8080/healthz
@@ -289,4 +291,4 @@ kubectl -n hutao-pet scale deployment/hutao-pet-api --replicas=0
 
 1. 删除已无唯一价值的 `.claude/`、`.kimi-code/`、`.trae/` 工具目录(OpenSpec 工作流已由 `.codex/skills` 承载,无迁移遗漏);
 2. 三个 OpenSpec change(监听器可观测性、多角色框架、开源发布准备)的工件与实现同步完成,`openspec validate --all` 7/7 通过;
-3. 生产级 `Dockerfile`(默认 runner 23.3MB / `runner-node` 变体 201MB)+ `smoke.sh`/`smoke.mjs` + `.dockerignore` 落地并实机构建验证;`deploy/` 8 个 K8s 参考清单落地。
+3. 生产级 `Dockerfile`(默认 runner 23.3MB / `runner-node` 变体 201MB)+ `smoke.sh`/`smoke.mjs` + `.dockerignore` 落地并实机构建验证;`docs/reference/k8s/` 8 个 K8s 参考清单落地。

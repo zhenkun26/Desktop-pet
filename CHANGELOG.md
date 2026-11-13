@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Repository organization: move K8s reference manifests from `deploy/` to `docs/reference/k8s/` and historical process documents to `docs/history/`; retain the root Dockerfile for build/smoke checks and update path references.
+- Manually archive the completed `add-changelog` and superseded `hutao-desktop-pet-tauri` changes without modifying main specifications; reconcile the already-satisfied `asarUnpack` task while preserving all outstanding manual checks.
+- Align README TypeScript information with lockfile version 5.9.3 (declared range `^5.7.2`) and point the historical review report link (which replaced the static test-count badge in #11) to `docs/history/`.
+
 <!-- 下次发版前在此段落累积未发布的变更。发版时将本段落内容剪切到新版本号段落下，并清空本段落。 -->
 
 ## [2.0.3] - 2026-08-06

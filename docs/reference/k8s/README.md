@@ -1,21 +1,23 @@
 # K8s 部署清单（参考模板）
 
 > **重要边界说明**：本仓库当前交付物是 **Electron 桌面应用**（本地单用户、无 HTTP 服务端），
-> 不能也不应直接部署进 Kubernetes。`/deploy` 下的清单是面向**未来服务端伴生 API**
+> 不能也不应直接部署进 Kubernetes。`docs/reference/k8s/` 下的清单是面向**未来服务端伴生 API**
 > （如多端同步、消息推送网关）的**参考模板**，所有镜像、域名、密钥均为占位符。
 > 在服务端组件落地前，请勿对桌面二进制执行 `kubectl apply`。
+
+以下路径示例以仓库根目录为工作目录，仅用于未来服务端模板；不代表当前桌面应用可以部署。
 
 ## 应用顺序
 
 ```bash
-kubectl apply -f deploy/00-namespace.yaml
-kubectl apply -f deploy/01-configmap.yaml
-kubectl apply -f deploy/02-secret.yaml
-kubectl apply -f deploy/03-deployment.yaml
-kubectl apply -f deploy/04-service.yaml
-kubectl apply -f deploy/05-ingress.yaml
-kubectl apply -f deploy/06-hpa.yaml
-kubectl apply -f deploy/07-pdb.yaml
+kubectl apply -f docs/reference/k8s/00-namespace.yaml
+kubectl apply -f docs/reference/k8s/01-configmap.yaml
+kubectl apply -f docs/reference/k8s/02-secret.yaml
+kubectl apply -f docs/reference/k8s/03-deployment.yaml
+kubectl apply -f docs/reference/k8s/04-service.yaml
+kubectl apply -f docs/reference/k8s/05-ingress.yaml
+kubectl apply -f docs/reference/k8s/06-hpa.yaml
+kubectl apply -f docs/reference/k8s/07-pdb.yaml
 ```
 
 ## Secret 修改
