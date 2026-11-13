@@ -36,4 +36,6 @@
 - [ ] 7.3 数据迁移验证（待用户实机确认）：旧 chat.db 会话出现在新应用
 - [x] 7.4 更新 CHANGELOG v2.0.0，删除旧版构建产物（`src-tauri/target` 随目录删除，/Applications 无旧版残留），`npm run build:mac` 输出 `release/胡桃桌宠-2.0.0-arm64.dmg` + `release/mac-arm64/胡桃桌宠.app`
 - [x] 7.5 同步 OpenSpec 文档：design.md / proposal.md 中 better-sqlite3 描述改为 node:sqlite、修正计时器 ticker 描述（与 3.1 实施变更一致）
-- [ ] 7.6 清理 electron-builder.yml 中 `asarUnpack: node_modules/better-sqlite3/**` 残留（已无原生依赖，无需 asarUnpack）
+- [x] 7.6 清理 electron-builder.yml 中 `asarUnpack: node_modules/better-sqlite3/**` 残留（已无原生依赖，无需 asarUnpack）
+
+Verification note (2026-11-12): task 7.6 was already satisfied; the current `electron-builder.yml` contains no `asarUnpack` entry. No packaging configuration was changed. Manual tasks 7.2 and 7.3 remain open.

@@ -1,5 +1,7 @@
 # 剩余待办推进方案(确认后执行)
 
+> Historical document retained during the 2026-11-12 repository cleanup. Original results, versions, and pending-work descriptions describe their original context, not current acceptance or authorization to run these commands. Path examples have been updated for the new layout.
+
 > 覆盖范围:三个 change 实机冒烟 · GitHub 建仓/推送/分支保护 · OrbStack + Docker 实测。
 > 执行约定:每完成一项立即更新对应 `tasks.md` 勾选;遇到失败先暂停修复再重测,不强行推进。
 
@@ -82,7 +84,7 @@ gh auth status
 git checkout -b codex/electron-hardening
 # 按选定方案分次 git add + git commit
 gh repo create Desktop-pet --public --source . --remote origin --push
-gh pr create --title "feat: Electron 重构落地 + 多角色框架 + 生产级加固" --body "见 docs/EXECUTION_PLAN.md / docs/ADVERSARIAL_REVIEW_REPORT.md"
+gh pr create --title "feat: Electron 重构落地 + 多角色框架 + 生产级加固" --body "见 docs/history/EXECUTION_PLAN.md / docs/history/ADVERSARIAL_REVIEW_REPORT.md"
 ```
 
 ### 2.4 CI 首次验证
@@ -161,3 +163,30 @@ docker run --rm hutao-pet-ci-node:latest
 3. **仓库名**:已确定为 `Desktop-pet`(公开)
 4. **发版**:Phase 4 是否顺带发版 2.0.2?
 5. **OrbStack**:授权我 `open -a OrbStack` 启动,还是你手动启动?
+
+## Repository organization verification — 2026-11-12
+
+This dated entry records a later repository-only cleanup; the historical phases
+above are preserved and do not authorize their old commands to be executed.
+
+- Scope: relocate K8s templates to `docs/reference/k8s/`, keep the root Dockerfile,
+  move both process documents to `docs/history/`, correct README versions/links,
+  manually archive the two completed historical changes without spec sync, and
+  mark only the already-satisfied Electron migration task 7.6 complete.
+- Validation: `node node_modules/typescript/bin/tsc --noEmit` exited 0; local
+  Vitest with caching disabled exited 0 with 17 files / 109 tests passed,
+  0 failed and 0 pending. Exit status and the structured JSON report were checked.
+- Test isolation: the owner explicitly allowed cleanup of this run's own test
+  temporary files. A new dedicated temporary root was used; no real application
+  data or existing build output was selected for cleanup.
+- Content checks: original archived change files, pre-existing archives, source,
+  dependencies, CI, packaging configuration, Dockerfile, and K8s YAML are unchanged;
+  remaining manual task text is preserved. Markdown links are checked across the
+  whole repository, including archives, and moves retain their original content
+  except the documented path/annotation updates.
+- Limits: OpenSpec CLI validation, container builds, application packaging, hosted
+  CI and manual UI/data migration checks were not run. The seven manual tasks in
+  the two remaining active changes are still open; older archived task states
+  are preserved too. Historical test/coverage numbers above were not rewritten.
+- Delivery: local Conventional Commit on `chore/repo-cleanup` with the approved
+  noreply author and committer; no push, merge, branch deletion or history rewrite.
