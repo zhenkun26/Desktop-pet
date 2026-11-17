@@ -439,9 +439,11 @@ function registerIpc(): void {
       )
     }
   )
-  ipcMain.handle('confirm-provider-privacy', (_event, connectionId: unknown) => {
-    if (typeof connectionId !== 'string') throw new Error('连接 ID 不合法')
-    return chatConfirmProviderPrivacy(connectionId)
+  ipcMain.handle('confirm-provider-privacy', (_event, connectionId: unknown, expectedConsentKey: unknown) => {
+    if (typeof connectionId !== 'string' || typeof expectedConsentKey !== 'string') {
+      throw new Error('Invalid provider confirmation')
+    }
+    return chatConfirmProviderPrivacy(connectionId, expectedConsentKey)
   })
 
   ipcMain.handle('get-persona-profile', (_event, petId: unknown) =>

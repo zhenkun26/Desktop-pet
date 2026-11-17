@@ -1,4 +1,9 @@
 import { marked } from 'marked'
+import {
+  providerConsentKey,
+  resolveModelProfileId,
+  resolveProviderSnapshot
+} from '../shared/model-routing'
 import DOMPurify from 'dompurify'
 import hutaoAvatarUrl from './assets/hutao.png'
 import type {
@@ -15,6 +20,7 @@ import type {
   PersonaProfile,
   ProviderConfig,
   ProviderConnection,
+  ProviderConfigSnapshot,
   TimerStatus
 } from '../shared/types'
 import { CHAT_LANGUAGE_LABELS, CHAT_LANGUAGES } from '../shared/types'
@@ -51,6 +57,9 @@ const state = {
   streamingConvId: null as string | null,
   streamingContent: '',
   finalized: true,
+  activeRequestId: null as string | null,
+  preparing: false,
+  modelSelectionPending: false,
   config: null as PetConfig | null,
   persona: null as PersonaProfile | null,
   apiKeyStatus: null as ApiKeyStatus | null,
@@ -177,28 +186,30 @@ function modelLabel(model: ModelProfile): string {
   return connection ? `${connection.displayName} · ${model.displayName}` : model.displayName
 }
 
+function selectedModelProfileId(): string | null {
+  if (!state.currentConversationId) {
+    return resolveModelProfileId(state.config?.defaultModelProfileId)
+  }
+  const conversation = state.conversations.find(
+    (entry) => entry.id === state.currentConversationId
+  )
+  return conversation ? resolveModelProfileId(conversation.modelProfileId) : null
+}
+
 function renderModelSelector(): void {
   const select = $('model-select') as HTMLSelectElement | null
   const status = $('model-picker-status')
   if (!select || !status) return
   const models = availableModels()
-  const current = state.conversations.find(
-    (conversation) => conversation.id === state.currentConversationId
-  )
-  const selected = current?.modelProfileId ?? state.config?.defaultModelProfileId ?? ''
-  select.innerHTML = models.length
-    ? models
-        .map(
-          (model) =>
-            `<option value="${escapeHtml(model.id)}">${escapeHtml(modelLabel(model))}</option>`
-        )
-        .join('')
-    : '<option value="">请先在设置中配置可用模型</option>'
-  select.value = models.some((model) => model.id === selected)
-    ? selected
-    : models[0]?.id ?? ''
-  select.disabled = models.length === 0
-  status.textContent = models.length ? '' : '未配置'
+  const selected = selectedModelProfileId()
+  const usable = models.some((model) => model.id === selected)
+  const unavailable = usable ? '' : '<option value="">Selected model unavailable — choose a model</option>'
+  select.innerHTML = unavailable + models.map((model) =>
+    `<option value="${escapeHtml(model.id)}">${escapeHtml(modelLabel(model))}</option>`
+  ).join('')
+  select.value = usable ? selected! : ''
+  select.disabled = models.length === 0 || state.modelSelectionPending || state.preparing
+  status.textContent = usable ? '' : 'Selected model unavailable'
 }
 
 async function loadProviderConfig(): Promise<void> {
@@ -410,7 +421,10 @@ async function deleteConversation(convId: string): Promise<void> {
 
 async function selectConversation(convId: string): Promise<void> {
   state.currentConversationId = convId
-  state.messages = await window.desktopPet.getConversationMessages(convId)
+  const messages = await window.desktopPet.getConversationMessages(convId)
+  if (state.currentConversationId !== convId) return
+  state.messages = messages
+  clearStreamContainer()
   renderConversationList()
   renderModelSelector()
   renderMessages()
@@ -606,129 +620,134 @@ function setStreamingUI(streaming: boolean): void {
   }
 }
 
+function showChatError(message: string): void {
+  const error = document.createElement('div')
+  error.className = 'message error'
+  error.textContent = `⚠ ${message}`
+  $('message-list').appendChild(error)
+  scrollToBottom()
+}
+
+async function prepareMessage(): Promise<{
+  conversationId: string
+  expectedRoute: ProviderConfigSnapshot
+} | null> {
+  state.preparing = true
+  try {
+    if (!state.currentConversationId) await createNewConversation()
+    const conversationId = state.currentConversationId
+    const selected = ($('model-select') as HTMLSelectElement).value
+    if (!conversationId || !selected || !state.providerConfig ||
+        selected !== selectedModelProfileId()) return null
+    const expectedRoute = resolveProviderSnapshot(state.providerConfig, selected)
+    if (!expectedRoute || !(await ensureProviderPrivacy(selected))) return null
+    if (state.currentConversationId !== conversationId ||
+        selectedModelProfileId() !== selected || state.modelSelectionPending) return null
+    return { conversationId, expectedRoute }
+  } catch (error) {
+    console.error('Preparing chat failed:', error)
+    showChatError('Unable to prepare the selected model. Review provider settings and retry.')
+    return null
+  } finally {
+    state.preparing = false
+    renderModelSelector()
+  }
+}
+
 async function sendMessage(): Promise<void> {
+  if (state.streaming) {
+    if (state.finalized) return
+    try {
+      await window.desktopPet.stopChatGeneration(state.streamingConvId ?? undefined)
+    } catch (error) {
+      console.error('Stopping chat failed:', error)
+      showChatError('Unable to stop generation. Please retry.')
+    }
+    return
+  }
+  if (state.preparing || state.modelSelectionPending) return
   const input = $('message-input') as HTMLTextAreaElement
   const content = input.value.trim()
   if (!content) return
-
-  if (state.streaming) {
-    // 按钮此时是「停止」
-    void window.desktopPet.stopChatGeneration(state.streamingConvId ?? undefined)
-    return
-  }
-
-  if (!state.currentConversationId) {
-    await createNewConversation()
-    if (!state.currentConversationId) return
-  }
-  const convId = state.currentConversationId
-  const selectedModelId = ($('model-select') as HTMLSelectElement).value
-  if (!selectedModelId || !(await ensureProviderPrivacy(selectedModelId))) return
-
-  // 清空输入
+  const prepared = await prepareMessage()
+  if (!prepared) return
+  const { conversationId, expectedRoute } = prepared
+  const requestId = crypto.randomUUID()
   input.value = ''
   input.style.height = 'auto'
-  ;($('send-btn') as HTMLButtonElement).disabled = true
-
-  // 乐观渲染 user 消息
   state.messages.push({
-    id: 'temp-' + Date.now(),
-    conversationId: convId,
-    role: 'user',
-    content,
-    createdAt: Date.now(),
-    status: 'complete',
-    errorCode: null
+    id: `pending-${requestId}`, conversationId, role: 'user', content,
+    createdAt: Date.now(), status: 'complete', errorCode: null
   })
   renderMessages()
-
-  // 思考气泡 + 流式 UI
   state.streaming = true
-  state.streamingConvId = convId
+  state.streamingConvId = conversationId
+  state.activeRequestId = requestId
   state.streamingContent = ''
   state.finalized = false
   showThinkingBubble()
   setStreamingUI(true)
-
   try {
-    // invoke 挂到生成终结才返回：完成信号不依赖事件通道（三重保障核心）
     const result = await window.desktopPet.sendChatMessage({
-      conversationId: convId,
-      content
+      conversationId, content, requestId, expectedRoute
     })
-    if (!result.ok && state.streamingConvId === convId && !state.finalized) {
-      await finalizeStream(convId, result.error)
-    }
+    await finalizeStream(conversationId, requestId, result.ok ? undefined : result.error)
   } catch (error) {
     console.error('send chat invoke error:', error)
-    if (!state.finalized) {
-      await finalizeStream(convId, '发送失败，请检查网络或 API 设置')
-    }
+    await finalizeStream(conversationId, requestId, 'Sending failed. Check provider settings and retry.')
   }
 }
 
-/**
- * 生成终结（done / error / cancelled / invoke 返回都会走到这里，幂等）：
- * 数据库是单一事实来源 —— 重载消息，清空流式 UI，恢复输入区。
- */
-async function finalizeStream(convId: string, errorText?: string): Promise<void> {
-  if (state.finalized) return
+/** Finalize only the matching request, including successful invokes with lost events. */
+async function finalizeStream(conversationId: string, requestId: string, errorText?: string): Promise<void> {
+  if (state.activeRequestId !== requestId ||
+      state.streamingConvId !== conversationId || state.finalized) return
   state.finalized = true
-
   clearThinkingTimers()
   cancelStreamRender()
-  state.streaming = false
-  state.streamingContent = ''
-  const wasCurrent = state.streamingConvId === state.currentConversationId
-  state.streamingConvId = null
-
-  if (wasCurrent) {
-    clearStreamContainer()
-    state.messages = await window.desktopPet.getConversationMessages(convId)
-    renderMessages()
-    if (errorText) {
-      const div = document.createElement('div')
-      div.className = 'message error'
-      div.textContent = `⚠ ${errorText}`
-      $('message-list').appendChild(div)
-      scrollToBottom()
+  clearStreamContainer()
+  ;($('send-btn') as HTMLButtonElement).disabled = true
+  try {
+    if (state.currentConversationId === conversationId) {
+      const messages = await window.desktopPet.getConversationMessages(conversationId)
+      if (state.currentConversationId === conversationId && state.activeRequestId === requestId) {
+        state.messages = messages
+        renderMessages()
+        if (errorText) showChatError(errorText)
+      }
+    }
+  } catch (error) {
+    console.error('Reloading completed chat failed:', error)
+    if (state.currentConversationId === conversationId) showChatError('Unable to reload messages. Reopen this conversation to retry.')
+  } finally {
+    if (state.activeRequestId === requestId) {
+      state.streaming = false
+      state.streamingContent = ''
+      state.streamingConvId = null
+      state.activeRequestId = null
+      setStreamingUI(false)
+      void refreshConversations().catch((error) => console.error('Refreshing conversations failed:', error))
     }
   }
-  setStreamingUI(false)
-  void refreshConversations()
 }
 
 function handleStreamEvent(event: ChatStreamEvent): void {
+  if (event.requestId !== state.activeRequestId ||
+      event.conversationId !== state.streamingConvId || state.finalized) return
   switch (event.type) {
     case 'start':
-      // assistant 消息此时已落库（status=streaming）
-      state.streaming = true
-      state.streamingConvId = event.conversationId
-      state.streamingContent = ''
-      state.finalized = false
-      if (event.conversationId === state.currentConversationId) {
-        if (!document.getElementById('thinking-row') && !document.getElementById('stream-bubble')) {
-          showThinkingBubble()
-        }
-        setStreamingUI(true)
-      }
+      // Local submission already owns the UI; a delayed start must not reset deltas.
       break
-
     case 'delta':
-      if (event.conversationId !== state.streamingConvId) break
       state.streamingContent += event.delta
-      if (event.conversationId === state.currentConversationId) {
-        scheduleStreamRender()
-      }
+      if (event.conversationId === state.currentConversationId) scheduleStreamRender()
       break
-
     case 'done':
     case 'cancelled':
-      void finalizeStream(event.conversationId)
+      void finalizeStream(event.conversationId, event.requestId)
       break
-
     case 'error':
-      void finalizeStream(event.conversationId, event.message)
+      void finalizeStream(event.conversationId, event.requestId, event.message)
       break
   }
 }
@@ -1030,7 +1049,9 @@ async function handleProviderConfigAction(event: Event): Promise<void> {
       resultEl.className = `test-result ${result.ok ? 'ok' : 'fail'}`
       resultEl.textContent = result.message
     } else if (action === 'confirm-privacy' && connectionId) {
-      await window.desktopPet.confirmProviderPrivacy(connectionId)
+      const connection = state.providerConfig?.connections.find((entry) => entry.id === connectionId)
+      if (!connection) throw new Error('Provider connection unavailable')
+      await window.desktopPet.confirmProviderPrivacy(connectionId, providerConsentKey(connection))
     } else if (action === 'delete-model' && modelId) {
       if (!window.confirm('删除模型配置后，新消息将无法选择它，继续吗？')) return
       await window.desktopPet.deleteModelProfile(modelId)
@@ -1058,23 +1079,27 @@ async function saveDefaultModel(): Promise<void> {
 }
 
 async function handleModelSelection(): Promise<void> {
-  const modelProfileId = ($('model-select') as HTMLSelectElement).value || null
-  if (!modelProfileId) return
-  if (state.currentConversationId) {
-    const updated = await window.desktopPet.setConversationModelProfile(
-      state.currentConversationId,
-      modelProfileId
-    )
-    if (updated) {
-      state.conversations = state.conversations.map((conversation) =>
-        conversation.id === updated.id ? updated : conversation
-      )
+  const modelProfileId = ($('model-select') as HTMLSelectElement).value
+  if (!modelProfileId || state.modelSelectionPending || state.preparing) return
+  const conversationId = state.currentConversationId
+  state.modelSelectionPending = true
+  ;($('model-select') as HTMLSelectElement).disabled = true
+  try {
+    if (conversationId) {
+      const updated = await window.desktopPet.setConversationModelProfile(conversationId, modelProfileId)
+      if (!updated) throw new Error('Conversation unavailable')
+      state.conversations = state.conversations.map((entry) => entry.id === updated.id ? updated : entry)
       renderConversationList()
+    } else {
+      state.config = await window.desktopPet.setDefaultModelProfile(modelProfileId)
     }
-  } else {
-    state.config = await window.desktopPet.setDefaultModelProfile(modelProfileId)
+  } catch (error) {
+    console.error('Selecting model failed:', error)
+    showChatError('Unable to change the model. The previous selection remains active.')
+  } finally {
+    state.modelSelectionPending = false
+    renderModelSelector()
   }
-  renderModelSelector()
 }
 
 async function ensureProviderPrivacy(modelProfileId: string): Promise<boolean> {
@@ -1082,12 +1107,13 @@ async function ensureProviderPrivacy(modelProfileId: string): Promise<boolean> {
   const connection = state.providerConfig?.connections.find(
     (item) => item.id === model?.connectionId
   )
-  if (!connection || connection.privacyConfirmed) return true
+  if (!connection) return false
+  if (connection.privacyConfirmed) return true
   const accepted = window.confirm(
-    `发送消息会将内容发送到“${connection.displayName}”。是否继续？`
+    `Send messages to "${connection.displayName}" (${connection.baseUrl})?`
   )
   if (!accepted) return false
-  await window.desktopPet.confirmProviderPrivacy(connection.id)
+  await window.desktopPet.confirmProviderPrivacy(connection.id, providerConsentKey(connection))
   await loadProviderConfig()
   return true
 }

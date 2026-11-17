@@ -19,10 +19,15 @@ import type {
 } from '../../../shared/types'
 import { PROVIDER_TYPES } from '../../../shared/types'
 import { migrateLegacyCredential } from './secrets-store'
+import {
+  DEFAULT_MODEL_PROFILE_ID,
+  providerConsentKey,
+  resolveProviderSnapshot
+} from '../../../shared/model-routing'
 
 export const DEFAULT_PROVIDER_CONNECTION_ID = 'deepseek-default'
 export const DEFAULT_CREDENTIAL_ID = 'deepseek-default'
-export const DEFAULT_MODEL_PROFILE_ID = 'deepseek-default'
+export { DEFAULT_MODEL_PROFILE_ID } from '../../../shared/model-routing'
 export const DEFAULT_DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
 export const DEFAULT_DEEPSEEK_MODEL = 'deepseek-v4-flash'
 
@@ -219,9 +224,12 @@ export function saveProviderConnection(
     credentialId,
     enabled: input.enabled ?? existing?.enabled ?? true,
     allowLocalhost,
-    privacyConfirmed: existing?.privacyConfirmed ?? false,
+    privacyConfirmed: false,
     updatedAt: now
   }
+  connection.privacyConfirmed =
+    existing?.privacyConfirmed === true &&
+    providerConsentKey(existing) === providerConsentKey(connection)
   const duplicate = config.connections.find(
     (item) => item.id !== id && item.displayName === displayName && item.baseUrl === baseUrl
   )
@@ -296,10 +304,17 @@ export function deleteModelProfile(modelProfileId: string): boolean {
   return true
 }
 
-export function confirmProviderPrivacy(connectionId: string): ProviderConnection {
+/** Confirm only the destination that was displayed to the user. */
+export function confirmProviderPrivacy(
+  connectionId: string,
+  expectedConsentKey: string
+): ProviderConnection {
   const config = normalizeConfig(readConfigFile())
   const connection = config.connections.find((item) => item.id === connectionId)
   if (!connection) throw new Error('供应商连接不存在')
+  if (providerConsentKey(connection) !== expectedConsentKey) {
+    throw new Error('Provider settings changed. Review the destination and confirm again.')
+  }
   connection.privacyConfirmed = true
   connection.updatedAt = Date.now()
   writeConfigFile(config)
@@ -309,23 +324,7 @@ export function confirmProviderPrivacy(connectionId: string): ProviderConnection
 export function getProviderSnapshot(
   modelProfileId: string | null | undefined
 ): ProviderConfigSnapshot | null {
-  const config = getProviderConfig()
-  const model = config.models.find(
-    (item) => item.id === (modelProfileId || DEFAULT_MODEL_PROFILE_ID)
-  )
-  if (!model) return null
-  const connection = config.connections.find((item) => item.id === model.connectionId)
-  if (!connection) return null
-  return {
-    modelProfileId: model.id,
-    providerConnectionId: connection.id,
-    providerType: connection.providerType,
-    providerName: connection.displayName,
-    baseUrl: connection.baseUrl,
-    modelId: model.modelId,
-    modelName: model.displayName,
-    credentialId: connection.credentialId
-  }
+  return resolveProviderSnapshot(getProviderConfig(), modelProfileId)
 }
 
 export function getModelProfile(modelProfileId: string): ModelProfile | null {

@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto'
+import { providerRoutesMatch } from '../../../shared/model-routing'
 import {
   DEFAULT_CHAT_LANGUAGE,
   normalizeChatLanguage,
@@ -168,8 +169,9 @@ export async function chatTestCredential(
   return testProviderConnection({ snapshot })
 }
 
-export function chatConfirmProviderPrivacy(connectionId: string) {
-  return confirmProviderPrivacy(connectionId)
+/** Confirm the exact provider destination presented by the renderer. */
+export function chatConfirmProviderPrivacy(connectionId: string, expectedConsentKey: string) {
+  return confirmProviderPrivacy(connectionId, expectedConsentKey)
 }
 
 export function chatGetPersonaProfile(petId: PetId) {
@@ -245,19 +247,18 @@ export function chatGetMessages(conversationId: string) {
   return getConversationMessages(conversationId)
 }
 
+/** Abort requests but retain conversation ownership until each promise settles. */
 export function stopChatGeneration(conversationId?: string): { ok: boolean } {
   if (conversationId) {
     const controller = activeControllers.get(conversationId)
     if (controller) {
       controller.abort()
-      activeControllers.delete(conversationId)
       return { ok: true }
     }
     return { ok: false }
   }
-  for (const [id, controller] of activeControllers) {
+  for (const controller of activeControllers.values()) {
     controller.abort()
-    activeControllers.delete(id)
   }
   return { ok: true }
 }
@@ -279,6 +280,11 @@ export async function sendChatMessage(
     return { ok: false, error: validation.error, code: validation.code }
   }
   const content = validation.content
+  if (input.requestId !== undefined &&
+      (typeof input.requestId !== 'string' || !input.requestId.trim())) {
+    return { ok: false, error: 'Invalid request identifier', code: 'unknown' }
+  }
+  const requestId = input.requestId ?? randomUUID()
 
   const conversation = getConversation(input.conversationId)
   if (!conversation) {
@@ -295,6 +301,13 @@ export async function sendChatMessage(
       ok: false,
       error: '没有可用的模型配置，请先在设置中配置供应商和模型',
       code: 'missing_credential'
+    }
+  }
+  if (input.expectedRoute && !providerRoutesMatch(input.expectedRoute, snapshot)) {
+    return {
+      ok: false,
+      error: 'Model settings changed. Review the selected route before sending again.',
+      code: 'model_not_supported'
     }
   }
   const providerConfig = getProviderConfig()
@@ -363,35 +376,18 @@ export async function sendChatMessage(
     modelName: snapshot.modelName
   })
 
+  const controller = new AbortController()
+  activeControllers.set(conversation.id, controller)
+
   console.log(`[chat] 阶段: 开始生成 — assistant 行已前置落库 (${assistantMessageId.slice(0, 8)}…)，进入流式输出`)
   safeEmit('chat-stream', streamListeners, {
     type: 'start',
+    requestId,
     conversationId: conversation.id,
     userMessageId: userMessage.id,
     assistantMessageId
   })
   safeEmit('business-event', businessListeners, { type: 'busy' })
-
-  const controller = new AbortController()
-  activeControllers.set(conversation.id, controller)
-
-  const profile = getPersonaProfile(conversation.petId)
-  const responseLanguage = normalizeChatLanguage(conversation.responseLanguage)
-  const systemPrompt = buildSystemPrompt(
-    conversation.petId,
-    profile,
-    responseLanguage
-  )
-  const history = getRecentContextMessages(conversation.id, 20)
-  const messages: ProviderChatMessage[] = [
-    { role: 'system', content: systemPrompt },
-    ...history
-      .filter((m) => m.id !== assistantMessageId)
-      .map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content
-      }))
-  ]
 
   let assembled = ''
   let firstDelta = true
@@ -417,6 +413,23 @@ export async function sendChatMessage(
     }
   }
   try {
+    const profile = getPersonaProfile(conversation.petId)
+    const responseLanguage = normalizeChatLanguage(conversation.responseLanguage)
+    const systemPrompt = buildSystemPrompt(
+      conversation.petId,
+      profile,
+      responseLanguage
+    )
+    const history = getRecentContextMessages(conversation.id, 20)
+    const messages: ProviderChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      ...history
+        .filter((m) => m.id !== assistantMessageId)
+        .map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content
+        }))
+    ]
     assembled = await streamProviderChat({
       snapshot,
       messages,
@@ -430,6 +443,7 @@ export async function sendChatMessage(
         scheduleDbFlush()
         safeEmit('chat-stream', streamListeners, {
           type: 'delta',
+          requestId,
           conversationId: conversation.id,
           assistantMessageId,
           delta
@@ -437,6 +451,7 @@ export async function sendChatMessage(
       }
     })
 
+    if (controller.signal.aborted) throw new DOMException('Aborted', 'AbortError')
     cancelDbFlush()
     updateMessage(assistantMessageId, {
       content: assembled,
@@ -446,13 +461,16 @@ export async function sendChatMessage(
     console.log('[chat] 阶段: 生成完成 — 消息已落库为 complete，invoke 即将返回')
     safeEmit('chat-stream', streamListeners, {
       type: 'done',
+      requestId,
       conversationId: conversation.id,
       assistantMessageId,
       content: assembled
     })
     return { ok: true }
   } catch (error) {
-    const mapped = mapError(error)
+    const mapped = controller.signal.aborted
+      ? { code: 'aborted' as const, message: 'Generation stopped.' }
+      : mapError(error)
     if (mapped.code === 'aborted') {
       cancelDbFlush()
       updateMessage(assistantMessageId, {
@@ -462,6 +480,7 @@ export async function sendChatMessage(
       })
       safeEmit('chat-stream', streamListeners, {
         type: 'cancelled',
+        requestId,
         conversationId: conversation.id,
         assistantMessageId
       })
@@ -477,6 +496,7 @@ export async function sendChatMessage(
     console.log(`[chat] 阶段: 生成失败 — code=${mapped.code}, message=${mapped.message}`)
     safeEmit('chat-stream', streamListeners, {
       type: 'error',
+      requestId,
       conversationId: conversation.id,
       assistantMessageId,
       code: mapped.code,
@@ -484,8 +504,13 @@ export async function sendChatMessage(
     })
     return { ok: false, error: mapped.message, code: mapped.code }
   } finally {
-    activeControllers.delete(conversation.id)
-    safeEmit('business-event', businessListeners, { type: 'idle' })
+    cancelDbFlush()
+    if (activeControllers.get(conversation.id) === controller) {
+      activeControllers.delete(conversation.id)
+    }
+    if (activeControllers.size === 0) {
+      safeEmit('business-event', businessListeners, { type: 'idle' })
+    }
   }
 }
 

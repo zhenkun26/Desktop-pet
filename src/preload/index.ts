@@ -74,8 +74,8 @@ const api: DesktopPetApi = {
     ipcRenderer.invoke('clear-credential', credentialId),
   testCredential: (credentialId: string, modelProfileId?: string) =>
     ipcRenderer.invoke('test-credential', credentialId, modelProfileId),
-  confirmProviderPrivacy: (connectionId: string) =>
-    ipcRenderer.invoke('confirm-provider-privacy', connectionId),
+  confirmProviderPrivacy: (connectionId: string, expectedConsentKey: string) =>
+    ipcRenderer.invoke('confirm-provider-privacy', connectionId, expectedConsentKey),
 
   getPersonaProfile: (petId: PetId) =>
     ipcRenderer.invoke('get-persona-profile', petId),
