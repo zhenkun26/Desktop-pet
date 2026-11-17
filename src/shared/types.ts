@@ -220,7 +220,7 @@ export interface SetCredentialInput {
  * - assistant 消息在 start 时已落库，事件均携带 assistantMessageId 供渲染层关联
  * - sendChatMessage 的 invoke 在生成终结后才返回，完成信号不依赖本事件通道
  */
-export type ChatStreamEvent =
+export type ChatStreamEvent = { requestId: string } & (
   | {
       type: 'start'
       conversationId: string
@@ -251,6 +251,7 @@ export type ChatStreamEvent =
       conversationId: string
       assistantMessageId: string
     }
+)
 
 export interface OpenChatOptions {
   petId?: PetId
@@ -276,9 +277,12 @@ export interface PetDescriptor {
   greetings: PetGreetings
 }
 
+/** Renderer sends carry correlation and the route shown before submission. */
 export interface SendChatMessageInput {
   conversationId: string
   content: string
+  requestId?: string
+  expectedRoute?: ProviderConfigSnapshot
 }
 
 export interface ProviderChatMessage {
@@ -376,7 +380,7 @@ export interface DesktopPetApi {
     credentialId: string,
     modelProfileId?: string
   ) => Promise<{ ok: boolean; message: string }>
-  confirmProviderPrivacy: (connectionId: string) => Promise<ProviderConnection>
+  confirmProviderPrivacy: (connectionId: string, expectedConsentKey: string) => Promise<ProviderConnection>
   getPersonaProfile: (petId: PetId) => Promise<PersonaProfile>
   updatePersonaProfile: (input: UpdatePersonaInput) => Promise<PersonaProfile>
   listConversations: (petId: PetId) => Promise<ConversationRecord[]>

@@ -2,6 +2,8 @@ import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { app } from 'electron'
+import { providerConsentKey } from '../../../shared/model-routing'
+import { confirmProviderPrivacy, getProviderConnection } from './provider-config'
 import {
   deleteModelProfile,
   deleteProviderConnection,
@@ -93,5 +95,45 @@ describe('provider-config', () => {
     expect(deleteModelProfile(modelA.id)).toBe(true)
     expect(deleteProviderConnection('company-a')).toBe(true)
     expect(existsSync(join(userData, 'provider-config.json'))).toBe(true)
+  })
+})
+
+
+describe('destination-bound privacy confirmation', () => {
+  const input = {
+    id: 'consent-test', providerType: 'openai-compatible' as const,
+    displayName: 'Provider', baseUrl: 'https://first.example.test', credentialId: 'consent-key'
+  }
+  beforeEach(cleanup)
+  afterEach(cleanup)
+
+  it('should keep new connections unconfirmed and accept the displayed destination', () => {
+    const created = saveProviderConnection(input)
+    expect(created.privacyConfirmed).toBe(false)
+    expect(confirmProviderPrivacy(created.id, providerConsentKey(created)).privacyConfirmed).toBe(true)
+  })
+
+  it.each([
+    { baseUrl: 'https://second.example.test' },
+    { credentialId: 'new-credential' },
+    { allowLocalhost: true }
+  ])('should revoke confirmation and reject stale consent after %j', (patch) => {
+    const created = saveProviderConnection(input)
+    const oldConsent = providerConsentKey(created)
+    confirmProviderPrivacy(created.id, oldConsent)
+    expect(saveProviderConnection({ ...input, ...patch }).privacyConfirmed).toBe(false)
+    expect(() => confirmProviderPrivacy(created.id, oldConsent)).toThrow('changed')
+    expect(getProviderConnection(created.id)?.privacyConfirmed).toBe(false)
+  })
+
+  it('should preserve confirmation for a renamed provider and equivalent canonical endpoint', () => {
+    const created = saveProviderConnection(input)
+    confirmProviderPrivacy(created.id, providerConsentKey(created))
+    const renamed = saveProviderConnection({ ...input, displayName: 'Renamed', baseUrl: input.baseUrl + '/' })
+    expect(renamed.privacyConfirmed).toBe(true)
+  })
+
+  it('should reject confirmation of a missing provider', () => {
+    expect(() => confirmProviderPrivacy('missing', 'unused')).toThrow()
   })
 })

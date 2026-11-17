@@ -8,6 +8,13 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep legacy conversation model selection consistent with the main-process route; show unavailable profiles explicitly and reject stale displayed routes before provider access.
+- Revoke provider privacy consent when the endpoint, protocol, credential reference, or localhost policy changes; reject confirmation of an outdated destination.
+- Allow stopping generation with an empty input. Correlate stream events and IPC completion by request, recover successful sends with missing terminal events, and prevent late completion/history reads from affecting another request or conversation.
+- Retain cancelled request ownership until settlement and keep the pet busy while another conversation is still generating. Add 43 offline regressions; all 152 tests, typecheck, and production build pass locally. Native GUI acceptance and hosted CI remain pending for this change.
+
 ### Changed
 
 - Repository organization: move K8s reference manifests from `deploy/` to `docs/reference/k8s/` and historical process documents to `docs/history/`; retain the root Dockerfile for build/smoke checks and update path references.
